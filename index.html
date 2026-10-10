@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evaluación docente de Zazarabicoa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rokkitt:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dark-green masthead with the school crest and a hard-edged stripe in the crest colours,
+   then a numbered workbench (Datos > Años y asignaturas > Plan > Notas > Exportar).
+   Wide tables scroll inside their own wrapper. */
+:root{
+  --bg:#f3f6ef; --surface:#ffffff; --surface-2:#e8efe3; --fg:#15241a; --muted:#566559; --line:#d2dbcd;
+  --accent:#17703e; --accent-fg:#ffffff; --accent-soft:#dbeedf;
+  --mast:#0f4a2a; --mast-fg:#f2f7ee; --mast-muted:#b9d3c0;
+  --ok:#17703e; --ok-soft:#dbeedf; --warn:#9a5600; --warn-soft:#fbecd3; --bad:#b3261e; --bad-soft:#f8dcd8;
+  --focus:#1a5fd0; --shadow:0 1px 2px rgba(15,40,25,.08);
+  --f-display:"Rokkitt","Roboto Slab",Georgia,serif; --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1611; --surface:#16211a; --surface-2:#1e2c23; --fg:#e5eee2; --muted:#9db0a2; --line:#2c3d32;
+    --accent:#5fcb88; --accent-fg:#08210f; --accent-soft:#1d3a28;
+    --mast:#0a2c19; --mast-fg:#eef5ea; --mast-muted:#9fc2aa;
+    --ok:#6fd694; --ok-soft:#1d3a28; --warn:#f0b255; --warn-soft:#3a2d12; --bad:#ff8f86; --bad-soft:#3d1c19;
+    --focus:#7fb0ff; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1611; --surface:#16211a; --surface-2:#1e2c23; --fg:#e5eee2; --muted:#9db0a2; --line:#2c3d32;
+  --accent:#5fcb88; --accent-fg:#08210f; --accent-soft:#1d3a28;
+  --mast:#0a2c19; --mast-fg:#eef5ea; --mast-muted:#9fc2aa;
+  --ok:#6fd694; --ok-soft:#1d3a28; --warn:#f0b255; --warn-soft:#3a2d12; --bad:#ff8f86; --bad-soft:#3d1c19;
+  --focus:#7fb0ff; --shadow:none; color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;line-height:1.15}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.wrap{max-width:68rem;margin-inline:auto;padding-inline:16px}
+
+/* masthead */
+.mast{background:var(--mast);color:var(--mast-fg);border-bottom:6px solid transparent;
+  border-image:linear-gradient(90deg,#d62b2b 0 20%,#f7e22b 20% 40%,#2aa9b8 40% 60%,#1c8a45 60% 80%,#e0187e 80% 100%) 1}
+.mast .wrap{display:flex;gap:16px;align-items:center;padding-block:16px;flex-wrap:wrap}
+.crest{width:64px;height:auto;background:#fff;border-radius:10px;padding:4px;flex:none}
+.mast h1{font-size:clamp(1.6rem,4.6vw,2.4rem);color:var(--mast-fg)}
+.mast p{margin:2px 0 0;color:var(--mast-muted);font-size:.95rem}
+.mast .title{flex:1;min-width:14rem}
+.stat{font-size:.85rem;padding:4px 10px;border-radius:99px;border:1px solid var(--mast-muted);color:var(--mast-fg);white-space:nowrap}
+.stat i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mast-muted);margin-right:6px}
+.stat[data-s="saved"] i,.stat[data-s="local"] i{background:#7ee2a0}
+.stat[data-s="saving"] i,.stat[data-s="pend"] i{background:#f7e22b}
+.stat[data-s="error"] i{background:#ff8f86}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding-block:16px 0}
+.tab{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+.tab b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--surface-2);font-size:.8rem}
+.tab[aria-current="page"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.tab[aria-current="page"] b{background:rgba(255,255,255,.25);color:inherit}
+main{padding-block:16px 48px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:var(--shadow)}
+.card+.card{margin-top:16px}
+.card h2{font-size:1.5rem;margin-bottom:4px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:65ch}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f span{font-size:.85rem;font-weight:600;color:var(--muted)}
+input[type=text],input[type=date],input[type=email],input[type=tel],select,textarea,input:not([type]){
+  background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
+input[type=password]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
+textarea{resize:vertical}
+.auth{max-width:30rem;margin-inline:auto}
+.auth form{display:grid;gap:14px}
+.showpw{display:flex;gap:8px;align-items:center;font-size:.9rem;color:var(--muted)}
+.userbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.userbox .btn{color:var(--mast-fg);border-color:var(--mast-muted)}
+fieldset{border:0;padding:0;margin:0}
+legend{font-family:var(--f-display);font-weight:700;font-size:1.2rem;padding:0;margin-bottom:10px}
+.sep{height:1px;background:var(--line);margin:20px 0}
+
+/* buttons */
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{border-color:var(--bad);color:var(--bad);background:transparent}
+.btn.danger[data-armed]{background:var(--bad);color:#fff}
+.btn.sm{padding:4px 10px;font-size:.9rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+.spacer{flex:1}
+.icon-btn{border:0;background:transparent;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
+.icon-btn:hover{background:var(--bad-soft);color:var(--bad)}
+
+/* chips and checkboxes */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip input,.chk input{position:absolute;opacity:0;pointer-events:none}
+.chip{position:relative}
+.chip span{display:block;padding:10px 18px;border:2px solid var(--line);border-radius:8px;font-weight:600;cursor:pointer;background:var(--bg)}
+.chip input:checked+span{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chip input:focus-visible+span,.chk input:focus-visible+span{outline:3px solid var(--focus);outline-offset:2px}
+.chk{position:relative;display:block;min-width:0}
+.chk span{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}
+.chk span::before{content:"";flex:none;width:18px;height:18px;border:2px solid var(--muted);border-radius:4px}
+.chk input:checked+span{border-color:var(--accent);background:var(--accent-soft)}
+.chk input:checked+span::before{background:var(--accent);border-color:var(--accent);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3 3 7-7' fill='none' stroke='white' stroke-width='2.4'/%3E%3C/svg%3E");background-size:100%}
+
+/* segmented lapsos */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:8px 16px;font-weight:600;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+thead th{background:var(--surface-2);font-size:.85rem;font-weight:700;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td input,td select{padding:6px 8px}
+.num{text-align:right}
+.plan td:nth-child(1){min-width:13rem}.plan td:nth-child(2){min-width:12rem}.plan td:nth-child(3){min-width:9rem}
+.plan td:nth-child(4){width:6rem}
+input.n{width:4.5rem;text-align:right}
+.grade th:first-child,.grade td:first-child{position:sticky;left:0;background:var(--surface);z-index:1;min-width:12rem;box-shadow:1px 0 0 var(--line)}
+.grade thead th:first-child{background:var(--surface-2);z-index:2}
+.grade th small{display:block;font-weight:500;color:var(--muted)}
+.grade td input{width:4.2rem;text-align:center}
+.grade .idx{color:var(--muted);display:inline-block;width:1.8rem}
+.grade tfoot td{background:var(--surface-2);font-weight:600}
+.grade tfoot td:first-child{background:var(--surface-2)}
+.def{font-weight:700;font-size:1.05rem}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.dim{color:var(--muted)}
+.prov{font-size:.7rem;color:var(--warn);margin-left:3px}
+
+/* plan status */
+.meter{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:12px}
+.meter div{height:100%;background:var(--ok);border-radius:99px}
+.meter.warn div{background:var(--warn)}.meter.over div{background:var(--bad)}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.85rem;font-weight:600}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.none{background:var(--surface-2);color:var(--muted)}.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.cellbtn{border:0;background:transparent;cursor:pointer;padding:0}
+.note{font-size:.9rem;color:var(--muted)}
+.empty{text-align:center;padding:32px 16px}
+.empty h3{font-size:1.4rem;margin-bottom:6px}
+.empty p{margin:0 auto 16px;max-width:46ch;color:var(--muted)}
+.empty .row{justify-content:center}
+.estlist{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.estlist li{display:grid;grid-template-columns:2rem minmax(0,2fr) minmax(0,1fr) auto;gap:8px;align-items:center}
+@media (max-width:560px){.estlist li{grid-template-columns:1.6rem minmax(0,1fr) auto}.estlist li .ced{grid-column:2/3}}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 0}
+.stats span{background:var(--surface-2);border-radius:8px;padding:6px 12px;font-size:.95rem}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}
+.opt input{margin-top:5px;accent-color:var(--accent)}
+.opt small{display:block;color:var(--muted)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:8px;max-width:calc(100vw - 32px);z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+@media (prefers-reduced-motion:no-preference){.card{animation:rise .25s ease-out}@keyframes rise{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+</head><body>
+
+<header class="mast">
+  <div class="wrap">
+    <img id="logo" class="crest" alt="Escudo de Zazarabicoa" width="64" height="65">
+    <div class="title">
+      <h1>Evaluación docente de Zazarabicoa</h1>
+      <p>Institución educativa venezolana · Educación Media General · Notas de 01 a 20</p>
+    </div>
+    <div class="stat" id="saveStat" data-s="saved" role="status" hidden><i></i><span>Guardado</span></div>
+    <div class="userbox" id="userBox" hidden><span class="stat" id="userName"></span><button class="btn ghost sm" data-act="logout">Cerrar sesión</button></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" aria-label="Partes de la aplicación" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+'use strict';
+var LOGO='data:image/jpeg;base64,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';
+document.getElementById('logo').src=LOGO;
+
+/* ---------- constants ---------- */
+var ANIOS=[{n:1,l:'1er año'},{n:2,l:'2do año'},{n:3,l:'3er año'},{n:4,l:'4to año'},{n:5,l:'5to año'}];
+var ASIGS=[
+ {id:'lyl',n:'Lenguaje y Literatura',s:'Lenguaje'},
+ {id:'idi',n:'Idiomas',s:'Idiomas'},
+ {id:'mat',n:'Matemática',s:'Matemática'},
+ {id:'edf',n:'Educación Física',s:'Ed Física'},
+ {id:'bat',n:'Biología, Ambiente y Tecnología',s:'BAT'},
+ {id:'fis',n:'Física',s:'Física'},
+ {id:'qui',n:'Química',s:'Química'},
+ {id:'ghs',n:'Geografía, Historia y Soberanía Nacional',s:'GHSN'},
+ {id:'itp',n:'Innovación Tecnológica y Productiva',s:'ITP'},
+ {id:'ovo',n:'Orientación Vocacional',s:'Orient Vocac'}
+];
+var TIPOS=['Prueba escrita','Prueba oral','Taller','Exposición','Trabajo práctico','Trabajo de investigación','Proyecto','Laboratorio','Cuaderno o carpeta','Participación','Otra actividad'];
+var LAPSOS=[1,2,3];
+var LS_KEY='zazarabicoa-evaluacion-docente-v1';
+var PERFIL_DOCENTE=[['apellidos','Apellidos','Pérez Rodríguez'],['nombres','Nombres','María Elena'],['cedula','Cédula de identidad','V-00.000.000'],['titulo','Título o especialidad','Licenciada en Educación'],['cargo','Cargo','Docente de aula'],['telefono','Teléfono','0414-0000000'],['correo','Correo electrónico','docente@correo.com']];
+var PERFIL_INST=[['institucion','Nombre de la institución','Institución Educativa Zazarabicoa'],['anioEscolar','Año escolar','2026-2027']];
+
+/* ---------- helpers ---------- */
+function $(s,r){return (r||document).querySelector(s)}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function uid(){return Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4)}
+function anioL(n){var a=ANIOS.filter(function(x){return x.n===+n})[0];return a?a.l:''}
+function allAsigs(){return ASIGS.concat(S.custom.map(function(c){return {id:c.id,n:c.n,s:c.n.slice(0,14)}}))}
+function asigById(id){return allAsigs().filter(function(a){return a.id===id})[0]}
+function selAsigs(){return allAsigs().filter(function(a){return S.asignaturas.indexOf(a.id)>-1})}
+function pad2(n){return String(n).padStart(2,'0')}
+function fmt(n){return n==null?'—':(Number.isInteger(n)?String(n):n.toFixed(1).replace('.',','))}
+function parseNum(v){var n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n}
+function fullName(){var p=S.perfil;return (p.nombres+' '+p.apellidos).trim()}
+function slug(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'')}
+
+/* ---------- state ---------- */
+function emptyState(){return {perfil:{apellidos:'',nombres:'',cedula:'',titulo:'',cargo:'Docente de aula',telefono:'',correo:'',institucion:'',anioEscolar:'2026-2027'},
+  anios:[],asignaturas:[],custom:[],planes:{},secOrder:[],secs:{}}}
+var S=emptyState();
+function freshUi(){return {tab:'perfil',planAsig:null,planLapso:1,nSec:null,nAsig:null,nLapso:1,manage:false,impOpen:false,imp:null,impResult:null,authMode:'login',authMsg:null,adm:{rows:null,loading:false,err:'',q:'',open:null}}}
+var ui=freshUi();
+
+function getPlan(asig,l){return (S.planes[asig]&&S.planes[asig][l])||[]}
+function ensurePlan(asig,l){S.planes[asig]=S.planes[asig]||{};S.planes[asig][l]=S.planes[asig][l]||[];return S.planes[asig][l]}
+function planTotal(list){return list.reduce(function(t,a){return t+(+a.peso||0)},0)}
+
+/* ---------- cloud accounts (Firebase) ---------- */
+var FIREBASE_CONFIG={apiKey:"AIzaSyDu69NeSEQ_7S2jJH-Nq5sr_Tw53MyTTZ8",authDomain:"zazarabicoa-2b864.firebaseapp.com",projectId:"zazarabicoa-2b864",storageBucket:"zazarabicoa-2b864.firebasestorage.app",messagingSenderId:"744699115115",appId:"1:744699115115:web:d44a6d8a9d18e051cc632e"};
+var EMAIL_DOMAIN='@docentes.zazarabicoa.app';
+var fauth=null,fdb=null,cloud='loading',isAdmin=false;
+var session=null,ver=0,conflict=false,dirty=false,saveT=null,retryT=null,chain=Promise.resolve(),idleT=null,IDLE_MS=15*60*1000;
+var edits=0,dirtyCfg=false,dirtySecs={},removedSecs={};
+var enc=new TextEncoder(),dec=new TextDecoder();
+/* Clave de acceso de la institución (guardada como huella, no en texto). Cambiar con generar-clave.html */
+var ACCESS={salt:"B1XiUsNJgLkiM/Im3BT7Ug==",iter:200000,hash:"pMfUkN0duZ2wCj9nwrbsLulFaqfZhN0y58XCk4S1o0M="};
+var gateOk=false;try{gateOk=sessionStorage.getItem('zazarabicoa-acceso')==='1'}catch(e){}
+if(!ACCESS)gateOk=true;
+function cryptoOk(){return !!(window.crypto&&window.crypto.subtle)}
+function b64(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s)}
+function unb64(t){var b=atob(t),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+async function checkGate(code){
+  var km=await crypto.subtle.importKey('raw',enc.encode(code),'PBKDF2',false,['deriveBits']);
+  var bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:unb64(ACCESS.salt),iterations:ACCESS.iter,hash:'SHA-256'},km,256);
+  return b64(bits)===ACCESS.hash;
+}
+function toEmail(u){
+  u=String(u||'').trim();
+  if(u.indexOf('@')>-1)return u.toLowerCase();
+  var k=normKey(u).replace(/[^a-z0-9._-]+/g,'.').replace(/^\.+|\.+$/g,'');
+  return k?k+EMAIL_DOMAIN:'';
+}
+function authMsg(e){
+  var c=(e&&e.code)||'';
+  if(c==='auth/email-already-in-use')return 'Ese usuario ya existe. Escoge otro nombre o entra con tu contraseña.';
+  if(c==='auth/weak-password')return 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+  if(c==='auth/invalid-email')return 'El usuario no es válido. Usa letras y números, o un correo completo.';
+  if(c==='auth/network-request-failed')return 'No hay conexión con el servidor. Revisa tu internet e inténtalo otra vez.';
+  if(c==='auth/too-many-requests')return 'Demasiados intentos. Espera unos minutos e inténtalo otra vez.';
+  if(c==='auth/operation-not-allowed')return 'El inicio de sesión con correo y contraseña no está activado en Firebase.';
+  if(c==='auth/user-disabled')return 'Este usuario está desactivado.';
+  if(c==='auth/unauthorized-domain')return 'Esta dirección web no está autorizada en Firebase. Agrégala en Authentication > Configuración > Dominios autorizados.';
+  if(c==='permission-denied'||c==='firestore/permission-denied')return 'El servidor rechazó el acceso a los datos. Revisa las reglas de Firestore.';
+  if(c.indexOf('auth/')===0)return 'Usuario o contraseña incorrectos.';
+  return 'Ocurrió un error. Inténtalo otra vez.';
+}
+function setStatus(st){
+  var el=$('#saveStat');el.dataset.s=st;
+  var t={pend:'Cambios sin guardar…',saving:'Guardando…',saved:'Guardado en la nube',error:'No se pudo guardar. Reintentando…'}[st]||'';
+  el.lastChild.textContent=t;
+}
+function persist(){
+  if(!session||conflict)return Promise.resolve(false);
+  clearTimeout(saveT);clearTimeout(retryT);
+  var s0=session,json=JSON.stringify(S);dirty=false;
+  chain=chain.then(async function(){
+    if(session!==s0||conflict)return false;
+    if(json.length>900000){setStatus('error');toast('Tus datos son demasiado grandes para guardarlos. Quita estudiantes o notas que ya no uses.');return false}
+    var ref=fdb.collection('docentes').doc(s0.uid);
+    try{
+      setStatus('saving');
+      var sv=0;
+      await fdb.runTransaction(async function(tx){
+        var snap=await tx.get(ref);
+        sv=snap.exists?(snap.data().version||0):0;
+        if(sv!==ver){var ce=new Error('conflict');ce.conflict=true;throw ce}
+        tx.set(ref,{usuario:s0.usuario,datos:json,version:sv+1,actualizado:firebase.firestore.FieldValue.serverTimestamp()});
+      });
+      ver=sv+1;
+      if(session===s0)setStatus(dirty?'pend':'saved');
+      return true;
+    }catch(e){
+      if(e&&e.conflict){conflict=true;setStatus('error');render();return false}
+      dirty=true;if(session===s0){setStatus('error');retryT=setTimeout(persist,8000)}
+      return false;
+    }
+  });
+  return chain;
+}
+function touch(){
+  edits++;if(!session||conflict)return;
+  dirty=true;setStatus('pend');clearTimeout(saveT);saveT=setTimeout(persist,800);
+}
+async function getCap(name){
+  for(var i=0;i<30;i++){
+    if(window.claude&&window.claude.use){try{return await window.claude.use(name)}catch(e){return null}}
+    await new Promise(function(r){setTimeout(r,150)});
+  }
+  return null;
+}
+function normalize(c){
+  var s=emptyState();
+  s.perfil=Object.assign(s.perfil,c.perfil||{});delete s.perfil.codigo;delete s.perfil.municipio;
+  s.anios=c.anios||[];s.asignaturas=c.asignaturas||[];s.custom=c.custom||[];s.planes=c.planes||{};
+  s.secs=c.secs||{};s.secOrder=(c.secOrder||[]).filter(function(id){return s.secs[id]});
+  s.secOrder.forEach(function(id){var x=s.secs[id];x.estudiantes=x.estudiantes||[];x.notas=x.notas||{}});
+  return s;
+}
+async function loadFromUser(user){
+  var ref=fdb.collection('docentes').doc(user.uid),snap=await ref.get(),nm=(user.email||'').split('@')[0];
+  if(!snap.exists){
+    S=emptyState();ver=0;session={uid:user.uid,usuario:nm,email:user.email};
+    await ref.set({usuario:nm,datos:JSON.stringify(S),version:1,actualizado:firebase.firestore.FieldValue.serverTimestamp()});ver=1;
+  }else{
+    var d=snap.data();
+    S=normalize(JSON.parse(d.datos||'{}'));ver=d.version||0;
+    session={uid:user.uid,usuario:d.usuario||nm,email:user.email};
+  }
+  enterApp();
+}
+function enterApp(){
+  conflict=false;dirty=false;
+  ui=freshUi();ui.nSec=S.secOrder[0]||null;ui.tab=hasData()?'notas':'perfil';
+  $('#userBox').hidden=false;$('#userName').textContent=session.usuario;
+  $('#saveStat').hidden=false;setStatus('saved');bumpIdle();render();window.scrollTo(0,0);checkAdmin();
+}
+function endSession(msg){
+  clearTimeout(saveT);clearTimeout(retryT);clearTimeout(idleT);
+  session=null;S=emptyState();conflict=false;dirty=false;isAdmin=false;
+  ui=freshUi();ui.authMode='login';ui.authMsg=msg||null;
+  $('#userBox').hidden=true;$('#saveStat').hidden=true;$('#toast').hidden=true;
+  render();window.scrollTo(0,0);
+}
+async function logout(msg){
+  if(!session)return;
+  await persist();
+  try{await fauth.signOut()}catch(e){}
+  endSession(msg);
+}
+function bumpIdle(){
+  clearTimeout(idleT);if(!session)return;
+  idleT=setTimeout(function(){logout('Cerré tu sesión por inactividad. Entra de nuevo con tu contraseña.')},IDLE_MS);
+}
+['click','keydown','input','touchstart'].forEach(function(e){document.addEventListener(e,bumpIdle,true)});
+document.addEventListener('visibilitychange',function(){if(document.hidden&&session&&dirty){persist()}});
+window.addEventListener('pagehide',function(){if(session&&dirty){persist()}});
+
+async function initCloud(){
+  try{
+    if(!window.firebase)throw new Error('sdk');
+    firebase.initializeApp(FIREBASE_CONFIG);fauth=firebase.auth();fdb=firebase.firestore();
+    await fauth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+  }catch(e){cloud='fail';render();return}
+  var first=true;
+  fauth.onAuthStateChanged(async function(user){
+    if(!first)return;first=false;
+    if(user&&gateOk){try{await loadFromUser(user);cloud='ready';return}catch(e){}}
+    if(user){try{await fauth.signOut()}catch(e){}}
+    cloud='ready';render();
+  });
+}
+
+function authErr(msg){var el=$('#authErr');if(el)el.textContent=msg||''}
+async function doRegister(usuario,pw,pw2){
+  usuario=usuario.trim();
+  var email=toEmail(usuario);
+  if(usuario.length<3)return authErr('El usuario debe tener al menos 3 caracteres.');
+  if(!email)return authErr('El usuario debe tener letras o números.');
+  if(pw.length<6)return authErr('La contraseña debe tener al menos 6 caracteres.');
+  if(pw!==pw2)return authErr('Las dos contraseñas no coinciden.');
+  var cred;
+  try{cred=await fauth.createUserWithEmailAndPassword(email,pw)}catch(e){return authErr(authMsg(e))}
+  try{
+    S=emptyState();ver=0;
+    await fdb.collection('docentes').doc(cred.user.uid).set({usuario:usuario,datos:JSON.stringify(S),version:1,actualizado:firebase.firestore.FieldValue.serverTimestamp()});
+    ver=1;session={uid:cred.user.uid,usuario:usuario,email:email};
+  }catch(e){
+    try{await cred.user.delete()}catch(e2){}
+    try{await fauth.signOut()}catch(e3){}
+    return authErr(authMsg(e));
+  }
+  enterApp();toast('Usuario creado. Ya puedes llenar tus datos.');
+}
+async function doLogin(usuario,pw){
+  var email=toEmail(usuario);
+  if(!email||!pw)return authErr('Usuario o contraseña incorrectos.');
+  try{var cred=await fauth.signInWithEmailAndPassword(email,pw);await loadFromUser(cred.user)}
+  catch(e){authErr(authMsg(e));try{await fauth.signOut()}catch(e2){}}
+}
+async function resetPw(){
+  var u=($('#au_user')||{}).value||'';
+  if(u.indexOf('@')<0)return authErr('Para recuperar la contraseña escribe tu correo electrónico en el campo Usuario. Si no usaste un correo, pide al administrador que la restablezca.');
+  try{await fauth.sendPasswordResetEmail(u.trim().toLowerCase());authErr('');ui.authMsg='Si ese correo tiene un usuario, te envié un mensaje para restablecer la contraseña. Revisa también la carpeta de spam.';render()}
+  catch(e){authErr(authMsg(e))}
+}
+async function reauth(cur){
+  var cred=firebase.auth.EmailAuthProvider.credential(session.email,cur);
+  await fauth.currentUser.reauthenticateWithCredential(cred);
+}
+async function doChangePw(cur,pw,pw2){
+  var el=$('#pwMsg');function say(t,c){if(el){el.textContent=t;el.className='note '+(c||'')}}
+  if(!cur)return say('Escribe tu contraseña actual.','bad');
+  if(pw.length<6)return say('La nueva contraseña debe tener al menos 6 caracteres.','bad');
+  if(pw!==pw2)return say('Las dos contraseñas nuevas no coinciden.','bad');
+  try{await reauth(cur);await fauth.currentUser.updatePassword(pw);
+    ['pw_cur','pw_new','pw_new2'].forEach(function(i){var e=$('#'+i);if(e)e.value=''});say('Contraseña cambiada.','ok');
+  }catch(e){say((e&&e.code&&e.code.indexOf('auth/')===0&&e.code!=='auth/network-request-failed')?'La contraseña actual no es correcta.':authMsg(e),'bad')}
+}
+async function deleteAccount(){
+  var el=$('#pwMsg'),cur=($('#pw_cur')||{}).value||'';
+  function say(t){if(el){el.textContent=t;el.className='note bad'}}
+  if(!cur)return say('Para eliminar tu usuario, escribe tu contraseña actual en el campo de arriba.');
+  var u=fauth.currentUser,uid=session.uid;
+  try{
+    await reauth(cur);
+    clearTimeout(saveT);await chain;
+    await fdb.collection('docentes').doc(uid).delete();
+    await u.delete();
+    clearTimeout(saveT);session=null;endSession('Tu usuario y sus datos se eliminaron.');
+  }catch(e){say('No se pudo eliminar. Revisa tu contraseña actual e inténtalo otra vez.')}
+}
+document.addEventListener('submit',async function(ev){
+  var f=ev.target;if(!f||!f.id)return;
+  ev.preventDefault();
+  if(f.id==='gateForm'){
+    var gb=f.querySelector('button[type=submit]');gb.disabled=true;var ge=$('#gateErr');ge.textContent='';
+    var okc=false;try{okc=await checkGate($('#gate_pw').value)}catch(e){}
+    if(okc){gateOk=true;try{sessionStorage.setItem('zazarabicoa-acceso','1')}catch(e){}ui.authMsg=null;render();}
+    else{await new Promise(function(r){setTimeout(r,1000)});if(ge.isConnected){ge.textContent='Clave incorrecta. Inténtalo otra vez.';gb.disabled=false;$('#gate_pw').select()}}
+    return;
+  }
+  if(f.id==='authForm'){
+    var btn=f.querySelector('button[type=submit]');btn.disabled=true;authErr('');
+    var pw2=$('#au_pw2');
+    try{if(ui.authMode==='register')await doRegister($('#au_user').value,$('#au_pw').value,pw2?pw2.value:'');else await doLogin($('#au_user').value,$('#au_pw').value)}
+    catch(e){authErr('Ocurrió un error. Inténtalo otra vez.')}
+    if(btn.isConnected)btn.disabled=false;
+  }else if(f.id==='pwForm'){await doChangePw($('#pw_cur').value,$('#pw_new').value,$('#pw_new2').value)}
+});
+function gateHTML(){
+  return '<section class="card auth"><h2>Acceso a la página</h2><p class="lead">Escribe la clave de acceso de la institución para continuar. Después podrás entrar con tu usuario o crear uno nuevo.</p>'+
+    '<form id="gateForm"><label class="f"><span>Clave de acceso</span><input type="password" id="gate_pw" autocomplete="off" required></label>'+
+    '<label class="showpw"><input type="checkbox" id="au_show"> Mostrar clave</label>'+
+    '<p class="bad" id="gateErr" role="alert" style="margin:0;min-height:1.2em"></p>'+
+    '<button class="btn" type="submit">Continuar</button></form>'+
+    '<p class="note" style="margin:14px 0 0">Si no tienes la clave, pídela a la dirección de la institución.</p></section>';
+}
+function authHTML(){
+  if(!cryptoOk())return '<section class="card auth"><h2>Navegador no compatible</h2><p class="lead">Este navegador es demasiado antiguo para esta página. Abre la página con Chrome, Edge o Firefox actualizados.</p></section>';
+  if(!gateOk)return gateHTML();
+  if(cloud==='loading')return '<section class="card auth"><h2>Conectando…</h2><p class="lead">Un momento, estoy conectando con el servidor.</p></section>';
+  if(cloud==='fail')return '<section class="card auth"><h2>Sin conexión con el servidor</h2><p class="lead">No pude conectar con el servidor de datos. Revisa tu internet y recarga la página. Esta página debe abrirse desde su dirección en internet, no desde un archivo guardado en el equipo.</p><button class="btn" data-act="reload">Recargar</button></section>';
+  var reg=ui.authMode==='register';
+  return '<section class="card auth"><h2>'+(reg?'Crear mi usuario':'Entrar')+'</h2>'+
+    '<p class="lead">'+(reg?'Cada docente crea su propio usuario. Tus asignaturas, planes y notas quedan separados de los de otros docentes y puedes verlos desde cualquier equipo.':'Escribe tu usuario y tu contraseña para abrir tus datos.')+'</p>'+
+    (ui.authMsg?'<p class="note" role="status" style="margin:0 0 12px">'+esc(ui.authMsg)+'</p>':'')+
+    '<form id="authForm"><label class="f"><span>Usuario'+(reg?' (puedes usar tu correo)':'')+'</span><input type="text" id="au_user" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>'+
+    '<label class="f"><span>Contraseña'+(reg?' (mínimo 6 caracteres)':'')+'</span><input type="password" id="au_pw" autocomplete="'+(reg?'new-password':'current-password')+'" required></label>'+
+    (reg?'<label class="f"><span>Repetir contraseña</span><input type="password" id="au_pw2" autocomplete="new-password" required></label>':'')+
+    '<label class="showpw"><input type="checkbox" id="au_show"> Mostrar contraseña</label>'+
+    '<p class="bad" id="authErr" role="alert" style="margin:0;min-height:1.2em"></p>'+
+    '<button class="btn" type="submit">'+(reg?'Crear usuario y entrar':'Entrar')+'</button></form>'+
+    '<div class="sep"></div><p class="note" style="margin:0">'+(reg?'¿Ya tienes usuario? <button class="btn ghost sm" data-act="authmode" data-mode="login">Entrar</button>':'¿Eres nuevo? <button class="btn ghost sm" data-act="authmode" data-mode="register">Crear mi usuario</button> <button class="btn ghost sm" data-act="resetpw">Olvidé mi contraseña</button>')+'</p></section>';
+}
+function conflictHTML(){
+  return '<section class="card" role="alert" style="border-color:var(--bad)"><h2>Tus datos cambiaron en otro lugar</h2><p class="lead">Se guardó una versión más reciente desde otro equipo u otra pestaña. Para no perder información, esta pestaña dejó de guardar. Si escribiste algo nuevo aquí, guarda primero una copia de seguridad y luego recarga la página.</p><div class="row"><button class="btn ghost" data-act="backup">Guardar copia de seguridad</button><button class="btn" data-act="reload">Recargar la página</button></div></section>';
+}
+function accountHTML(){
+  return '<section class="card"><h2>Mi cuenta</h2><p class="lead">Sesión de <strong>'+esc(session.usuario)+'</strong>. Tus datos se guardan en la nube y puedes entrar desde cualquier equipo con tu usuario y contraseña. Otros docentes no ven tus datos.</p>'+
+    '<form id="pwForm" class="row" autocomplete="off"><label class="f"><span>Contraseña actual</span><input type="password" id="pw_cur" autocomplete="current-password"></label>'+
+    '<label class="f"><span>Nueva contraseña</span><input type="password" id="pw_new" autocomplete="new-password"></label>'+
+    '<label class="f"><span>Repetir nueva</span><input type="password" id="pw_new2" autocomplete="new-password"></label>'+
+    '<button class="btn ghost" type="submit" style="align-self:flex-end">Cambiar contraseña</button></form>'+
+    '<p class="note" id="pwMsg" role="status" style="margin:8px 0 0"></p>'+
+    '<div class="row" style="margin-top:12px"><button class="btn ghost" data-act="logout">Cerrar sesión</button><span class="spacer"></span>'+
+    '<button class="btn danger sm" data-act="deluser" data-label="Eliminar mi usuario y mis datos">Eliminar mi usuario y mis datos</button></div></section>';
+}
+
+/* ---------- calculations ---------- */
+function noteOf(sec,estId,actId){var v=sec.notas[estId]&&sec.notas[estId][actId];return (v==null||v==='')?null:+v}
+function lapsoDef(sec,est,asig,l){
+  var acts=getPlan(asig,l),sw=0,sn=0,graded=0,tw=0,counted=0;
+  acts.forEach(function(a){
+    var p=+a.peso||0;tw+=p;if(p>0)counted++;
+    var v=noteOf(sec,est.id,a.id);
+    if(v!=null&&p>0){sn+=v*p;sw+=p;graded++}
+  });
+  if(!sw)return {def:null,prov:false};
+  var raw=+(sn/sw).toFixed(4);
+  return {raw:raw,def:Math.round(raw),prov:!(graded===counted&&Math.abs(tw-100)<0.01)};
+}
+function anualDef(sec,est,asig){
+  var ds=LAPSOS.map(function(l){return lapsoDef(sec,est,asig,l)});
+  if(ds.some(function(d){return d.def==null}))return {def:null,prov:false};
+  var m=+((ds[0].def+ds[1].def+ds[2].def)/3).toFixed(4);
+  return {def:Math.round(m),prov:ds.some(function(d){return d.prov})};
+}
+function hasNotes(sec,asig){
+  return LAPSOS.some(function(l){return getPlan(asig,l).some(function(a){return sec.estudiantes.some(function(e){return noteOf(sec,e.id,a.id)!=null})})});
+}
+function defHTML(r){
+  if(r.def==null)return '<span class="dim">—</span>';
+  return '<span class="def '+(r.def<10?'bad':'ok')+'">'+pad2(r.def)+'</span>'+(r.prov?'<sup class="prov" title="Provisional: faltan notas o el plan no suma 100 %">prov.</sup>':'');
+}
+
+/* ---------- UI utilities ---------- */
+var toastT=null;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},4000)}
+function empty(title,text,buttons){
+  return '<section class="card empty"><h3>'+esc(title)+'</h3><p>'+esc(text)+'</p><div class="row">'+
+    buttons.map(function(b,i){return '<button class="btn'+(i?' ghost':'')+'" '+b[0]+'>'+esc(b[1])+'</button>'}).join('')+'</div></section>';
+}
+function nextBtn(tab,label){return '<div class="row end" style="margin-top:16px"><button class="btn" data-go="'+tab+'">'+esc(label)+'</button></div>'}
+
+var TABS=[['perfil','Datos personales'],['asig','Años y asignaturas'],['plan','Plan de evaluación'],['notas','Notas'],['export','Exportar']];
+function renderTabs(){
+  $('#tabs').innerHTML=(isAdmin?TABS.concat([['admin','Administración']]):TABS).map(function(t,i){
+    return '<button class="tab" data-go="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'><b>'+(i+1)+'</b>'+t[1]+'</button>';
+  }).join('');
+}
+
+/* ---------- views ---------- */
+function perfilView(){
+  function fields(list){return list.map(function(f){
+    return '<label class="f"><span>'+f[1]+'</span><input type="text" id="p_'+f[0]+'" data-p="'+f[0]+'" autocomplete="off" placeholder="'+esc(f[2])+'" value="'+esc(S.perfil[f[0]])+'"></label>';
+  }).join('')}
+  return '<section class="card"><h2>Datos personales</h2><p class="lead">Estos datos aparecen en el encabezado de los archivos PDF y Excel. Todo lo que escribas se guarda solo.</p>'+
+    '<fieldset><legend>Docente</legend><div class="grid">'+fields(PERFIL_DOCENTE)+'</div></fieldset><div class="sep"></div>'+
+    '<fieldset><legend>Institución</legend><div class="grid">'+fields(PERFIL_INST)+'</div></fieldset>'+
+    '<p class="note" style="margin-top:16px">¿Primera vez? <button class="btn ghost sm" data-act="ejemplo">Ver la aplicación con datos de ejemplo</button></p></section>'+
+    nextBtn('asig','Siguiente: años y asignaturas');
+}
+function asigView(){
+  var chips=ANIOS.map(function(a){return '<label class="chip"><input type="checkbox" data-anio="'+a.n+'"'+(S.anios.indexOf(a.n)>-1?' checked':'')+'><span>'+a.l+'</span></label>'}).join('');
+  var boxes=allAsigs().map(function(a){
+    var custom=a.id.indexOf('c_')===0;
+    return '<div class="row" style="flex-wrap:nowrap"><label class="chk" style="flex:1"><input type="checkbox" data-asig="'+a.id+'"'+(S.asignaturas.indexOf(a.id)>-1?' checked':'')+'><span>'+esc(a.n)+'</span></label>'+
+      (custom?'<button class="icon-btn" data-act="delcustom" data-id="'+a.id+'" aria-label="Quitar '+esc(a.n)+' de la lista" title="Quitar de la lista">×</button>':'')+'</div>';
+  }).join('');
+  return '<section class="card"><h2>Años que atiendes</h2><p class="lead">Marca uno o varios años de Educación Media General.</p><div class="chips">'+chips+'</div></section>'+
+    '<section class="card"><h2>Asignaturas que impartes</h2><p class="lead">Marca todas las asignaturas que das. Si falta alguna, agrégala abajo.</p>'+
+    '<div class="grid">'+boxes+'</div>'+
+    '<div class="row" style="margin-top:16px"><label class="f" style="flex:1;min-width:14rem"><span>Otra asignatura</span><input type="text" id="customAsig" placeholder="Nombre de la asignatura" autocomplete="off"></label>'+
+    '<button class="btn ghost" data-act="addcustom" style="align-self:flex-end">Agregar</button></div>'+
+    '<p class="note" id="asigSum" style="margin-top:16px"></p></section>'+
+    nextBtn('plan','Siguiente: plan de evaluación');
+}
+function asigSummary(){
+  var el=$('#asigSum');if(!el)return;
+  var an=S.anios.map(anioL).join(', ')||'ningún año';
+  var n=S.asignaturas.length;
+  el.textContent='Das clases en: '+an+' · '+n+(n===1?' asignatura':' asignaturas')+'.';
+}
+function planStatus(tot,n){
+  if(!n)return {cls:'none',txt:'Sin actividades'};
+  if(Math.abs(tot-100)<0.01)return {cls:'ok',txt:'100 %'};
+  return {cls:tot>100?'bad':'warn',txt:(+tot.toFixed(2))+' %'};
+}
+function planView(){
+  var list=selAsigs();
+  if(!list.length)return empty('Primero elige tus asignaturas','Cuando marques las asignaturas que impartes, aquí podrás armar el plan de evaluación de cada una.',[['data-go="asig"','Ir a años y asignaturas']]);
+  if(!list.some(function(a){return a.id===ui.planAsig}))ui.planAsig=list[0].id;
+  var asigOpts=list.map(function(a){return '<option value="'+a.id+'"'+(a.id===ui.planAsig?' selected':'')+'>'+esc(a.n)+'</option>'}).join('');
+  var seg=LAPSOS.map(function(l){return '<button data-plapso="'+l+'" aria-pressed="'+(l===ui.planLapso)+'">Lapso '+l+'</button>'}).join('');
+  var acts=getPlan(ui.planAsig,ui.planLapso);
+  var rows=acts.map(function(a){
+    return '<tr data-aid="'+a.id+'"><td><input type="text" data-pf="nombre" value="'+esc(a.nombre)+'" placeholder="Nombre de la actividad" aria-label="Nombre de la actividad"></td>'+
+      '<td><select data-pf="tipo" aria-label="Tipo de actividad">'+TIPOS.map(function(t){return '<option'+(t===a.tipo?' selected':'')+'>'+t+'</option>'}).join('')+'</select></td>'+
+      '<td><input type="date" data-pf="fecha" value="'+esc(a.fecha||'')+'" aria-label="Fecha de la actividad"></td>'+
+      '<td><input type="text" class="n" inputmode="decimal" data-pf="peso" value="'+(a.peso===''||a.peso==null?'':esc(String(a.peso).replace('.',',')))+'" aria-label="Peso en porcentaje"></td>'+
+      '<td><button class="icon-btn" data-act="delact" aria-label="Quitar actividad" title="Quitar actividad">×</button></td></tr>';
+  }).join('');
+  var overview=list.map(function(a){
+    return '<tr><td>'+esc(a.n)+'</td>'+LAPSOS.map(function(l){
+      var p=getPlan(a.id,l),st=planStatus(planTotal(p),p.length);
+      return '<td><button class="cellbtn" data-pgo="'+a.id+'|'+l+'" aria-label="Abrir '+esc(a.n)+', lapso '+l+'"><span class="tag '+st.cls+'">'+st.txt+'</span></button></td>';
+    }).join('')+'</tr>';
+  }).join('');
+  return '<section class="card"><h2>Plan de evaluación</h2><p class="lead">Define las actividades de cada lapso y cuánto vale cada una. Los pesos de un lapso deben sumar 100 %.</p>'+
+    '<div class="row"><label class="f" style="flex:1;min-width:14rem"><span>Asignatura</span><select id="planAsig">'+asigOpts+'</select></label>'+
+    '<div class="f"><span>Lapso</span><div class="seg" role="group" aria-label="Lapso">'+seg+'</div></div></div>'+
+    '<div style="margin-top:16px">'+(acts.length?'<div class="tbl-wrap"><table class="plan"><thead><tr><th>Actividad</th><th>Tipo</th><th>Fecha</th><th class="num">Peso %</th><th><span class="sr">Quitar</span></th></tr></thead><tbody id="planBody">'+rows+'</tbody></table></div>':
+      '<p class="note">Este lapso todavía no tiene actividades.</p>')+'</div>'+
+    '<div id="planTot"></div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn" data-act="addact">+ Agregar actividad</button>'+
+    '<button class="btn ghost" data-act="equal"'+(acts.length?'':' disabled')+'>Repartir pesos por igual</button>'+
+    '<button class="btn ghost" data-act="copyplan"'+(acts.length?'':' disabled')+'>Copiar a otros lapsos vacíos</button></div></section>'+
+    '<section class="card"><h2>Estado de los planes</h2><p class="lead">Suma de pesos por asignatura y lapso. Toca una casilla para editarla.</p>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>Asignatura</th><th>Lapso 1</th><th>Lapso 2</th><th>Lapso 3</th></tr></thead><tbody>'+overview+'</tbody></table></div></section>'+
+    nextBtn('notas','Siguiente: notas');
+}
+function planTotalHTML(){
+  var acts=getPlan(ui.planAsig,ui.planLapso),tot=planTotal(acts);
+  if(!acts.length)return '';
+  var diff=+(100-tot).toFixed(2),cls,txt;
+  if(Math.abs(diff)<0.01){cls='';txt='Los pesos suman 100 %. El plan está completo.'}
+  else if(diff>0){cls='warn';txt='Los pesos suman '+(+tot.toFixed(2))+' %. Faltan '+diff+' %.'}
+  else{cls='over';txt='Los pesos suman '+(+tot.toFixed(2))+' %. Sobran '+(-diff)+' %.'}
+  return '<div class="meter '+cls+'"><div style="width:'+Math.min(100,tot)+'%"></div></div><p class="note" style="margin:6px 0 0">'+txt+'</p>';
+}
+function updatePlanTotal(){var el=$('#planTot');if(el)el.innerHTML=planTotalHTML()}
+
+function curSec(){return S.secs[ui.nSec]}
+function notasView(){
+  var list=selAsigs();
+  if(!S.secOrder.length){
+    var opts=(S.anios.length?S.anios:[1,2,3,4,5]).map(function(n){return '<option value="'+n+'">'+anioL(n)+'</option>'}).join('');
+    return importPanelHTML()+'<section class="card"><h2>O crea la sección a mano</h2><p class="lead">Escribe el año y la sección, por ejemplo 3er año sección A. Después pegas la lista de estudiantes y cargas las notas.</p>'+
+      '<div class="row"><label class="f"><span>Año</span><select id="newAnio">'+opts+'</select></label>'+
+      '<label class="f"><span>Sección</span><input type="text" id="newSec" maxlength="12" placeholder="A" style="width:7rem" autocomplete="off"></label>'+
+      '<button class="btn" data-act="addsec" style="align-self:flex-end">Crear sección</button></div>'+
+      '<p class="note" style="margin-top:16px">¿Quieres ver cómo se ve con datos? <button class="btn ghost sm" data-act="ejemplo">Cargar datos de ejemplo</button></p></section>';
+  }
+  if(!S.secs[ui.nSec])ui.nSec=S.secOrder[0];
+  if(list.length&&!list.some(function(a){return a.id===ui.nAsig}))ui.nAsig=list[0].id;
+  var sec=curSec();
+  var secOpts=S.secOrder.map(function(id){var s=S.secs[id];return '<option value="'+id+'"'+(id===ui.nSec?' selected':'')+'>'+anioL(s.anio)+' · Sección '+esc(s.seccion)+' ('+s.estudiantes.length+')</option>'}).join('');
+  var asigOpts=list.map(function(a){return '<option value="'+a.id+'"'+(a.id===ui.nAsig?' selected':'')+'>'+esc(a.n)+'</option>'}).join('');
+  var seg=LAPSOS.map(function(l){return '<button data-nlapso="'+l+'" aria-pressed="'+(l===ui.nLapso)+'">Lapso '+l+'</button>'}).join('');
+  var out='<section class="card"><h2>Notas</h2><div class="row">'+
+    '<label class="f" style="flex:1;min-width:13rem"><span>Sección</span><select id="nSec">'+secOpts+'</select></label>'+
+    '<label class="f" style="flex:1.4;min-width:15rem"><span>Asignatura</span><select id="nAsig"'+(list.length?'':' disabled')+'>'+(asigOpts||'<option>Sin asignaturas</option>')+'</select></label>'+
+    '<div class="f"><span>Lapso</span><div class="seg" role="group" aria-label="Lapso">'+seg+'</div></div>'+
+    '<button class="btn ghost" data-act="manage" aria-expanded="'+ui.manage+'" style="align-self:flex-end">'+(ui.manage?'Cerrar sección':'Estudiantes y secciones')+'</button>'+
+    '<button class="btn ghost" data-act="impopen" aria-expanded="'+!!ui.impOpen+'" style="align-self:flex-end">'+(ui.impOpen?'Cerrar importación':'Importar desde Excel')+'</button></div></section>';
+  if(ui.impResult)out+='<section class="card" role="status"><p style="margin:0 0 10px">'+esc(ui.impResult)+'</p><button class="btn ghost sm" data-act="impok">Entendido</button></section>';
+  if(ui.impOpen)out+=importPanelHTML();
+  if(ui.manage)out+=manageHTML(sec);
+  if(!list.length){
+    out+=empty('Elige tus asignaturas','Para cargar notas necesitas marcar las asignaturas que impartes.',[['data-go="asig"','Ir a años y asignaturas']]);
+  }else if(!sec.estudiantes.length){
+    out+=empty('Esta sección no tiene estudiantes','Pega la lista de estudiantes en el panel de la sección.',[['data-act="manage"','Abrir estudiantes y secciones']]);
+  }else if(!getPlan(ui.nAsig,ui.nLapso).length){
+    out+=empty('Falta el plan de este lapso','Antes de cargar notas, define las actividades de '+asigById(ui.nAsig).n+' para el lapso '+ui.nLapso+'.',[['data-pgo="'+ui.nAsig+'|'+ui.nLapso+'"','Ir al plan de evaluación']]);
+  }else{
+    out+='<section class="card"><h2>Evaluación continua · Lapso '+ui.nLapso+'</h2><p class="lead">Escribe las notas de 01 a 20. Con Enter pasas al siguiente estudiante. La definitiva del lapso es el promedio ponderado por los pesos del plan.</p>'+
+      '<div class="tbl-wrap"><table class="grade">'+gradeHead()+'<tbody>'+gradeRows(sec)+'</tbody><tfoot id="gradeFoot">'+gradeFoot(sec)+'</tfoot></table></div><div class="stats" id="statsWrap">'+statsHTML(sec)+'</div></section>'+
+      '<section class="card"><h2>Resumen del año</h2><p class="lead">Definitiva de cada lapso y definitiva anual (promedio de los tres lapsos).</p><div id="annualWrap">'+annualHTML(sec,ui.nAsig)+'</div></section>';
+  }
+  return out+nextBtn('export','Siguiente: exportar');
+}
+function gradeHead(){
+  var acts=getPlan(ui.nAsig,ui.nLapso);
+  return '<thead><tr><th>Estudiante</th>'+acts.map(function(a){
+    return '<th class="num" style="text-align:center">'+esc(a.nombre||a.tipo)+'<small>'+esc(a.tipo)+' · '+(+a.peso||0)+' %</small></th>';
+  }).join('')+'<th style="text-align:center">Definitiva<small>lapso '+ui.nLapso+'</small></th></tr></thead>';
+}
+function gradeRows(sec){
+  var acts=getPlan(ui.nAsig,ui.nLapso);
+  return sec.estudiantes.map(function(e,r){
+    return '<tr><td><span class="idx">'+(r+1)+'</span>'+esc(e.nombre)+'</td>'+acts.map(function(a,c){
+      var v=noteOf(sec,e.id,a.id);
+      return '<td style="text-align:center"><input type="text" inputmode="decimal" data-nota="'+e.id+'|'+a.id+'" data-r="'+r+'" data-c="'+c+'" value="'+(v==null?'':esc(String(v).replace('.',',')))+'" aria-label="Nota de '+esc(e.nombre)+', '+esc(a.nombre||a.tipo)+'"></td>';
+    }).join('')+'<td style="text-align:center" data-defcell="'+e.id+'">'+defHTML(lapsoDef(sec,e,ui.nAsig,ui.nLapso))+'</td></tr>';
+  }).join('');
+}
+function gradeFoot(sec){
+  var acts=getPlan(ui.nAsig,ui.nLapso);
+  var cells=acts.map(function(a){
+    var vs=sec.estudiantes.map(function(e){return noteOf(sec,e.id,a.id)}).filter(function(v){return v!=null});
+    return '<td style="text-align:center">'+(vs.length?fmt(+(vs.reduce(function(t,v){return t+v},0)/vs.length).toFixed(1)):'—')+'</td>';
+  }).join('');
+  var ds=sec.estudiantes.map(function(e){return lapsoDef(sec,e,ui.nAsig,ui.nLapso).def}).filter(function(v){return v!=null});
+  return '<tr><td>Promedio del grupo</td>'+cells+'<td style="text-align:center">'+(ds.length?fmt(+(ds.reduce(function(t,v){return t+v},0)/ds.length).toFixed(1)):'—')+'</td></tr>';
+}
+function statsHTML(sec){
+  var ds=sec.estudiantes.map(function(e){return lapsoDef(sec,e,ui.nAsig,ui.nLapso).def}).filter(function(v){return v!=null});
+  var ap=ds.filter(function(d){return d>=10}).length,rp=ds.length-ap,sin=sec.estudiantes.length-ds.length;
+  return '<span><b class="ok">'+ap+'</b> aprobados (10 o más)</span><span><b class="bad">'+rp+'</b> por debajo de 10</span><span><b>'+sin+'</b> sin nota</span>';
+}
+function annualHTML(sec,asig){
+  var rows=sec.estudiantes.map(function(e,r){
+    return '<tr><td><span class="idx dim">'+(r+1)+'</span> '+esc(e.nombre)+'</td>'+LAPSOS.map(function(l){return '<td style="text-align:center">'+defHTML(lapsoDef(sec,e,asig,l))+'</td>'}).join('')+'<td style="text-align:center">'+defHTML(anualDef(sec,e,asig))+'</td></tr>';
+  }).join('');
+  return '<div class="tbl-wrap"><table><thead><tr><th>Estudiante</th><th style="text-align:center">Lapso 1</th><th style="text-align:center">Lapso 2</th><th style="text-align:center">Lapso 3</th><th style="text-align:center">Definitiva anual</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function updateComputed(){
+  var sec=curSec();if(!sec)return;
+  $$('[data-defcell]').forEach(function(td){
+    var e=sec.estudiantes.filter(function(x){return x.id===td.dataset.defcell})[0];
+    if(e)td.innerHTML=defHTML(lapsoDef(sec,e,ui.nAsig,ui.nLapso));
+  });
+  var f=$('#gradeFoot');if(f)f.innerHTML=gradeFoot(sec);
+  var st=$('#statsWrap');if(st)st.innerHTML=statsHTML(sec);
+  var an=$('#annualWrap');if(an)an.innerHTML=annualHTML(sec,ui.nAsig);
+}
+function manageHTML(sec){
+  var opts=(S.anios.length?S.anios:[1,2,3,4,5]).map(function(n){return '<option value="'+n+'">'+anioL(n)+'</option>'}).join('');
+  var list=sec.estudiantes.map(function(e,i){
+    return '<li><span class="dim">'+(i+1)+'</span><input type="text" data-en="nombre" data-est="'+e.id+'" value="'+esc(e.nombre)+'" aria-label="Nombre del estudiante '+(i+1)+'">'+
+      '<input type="text" class="ced" data-en="cedula" data-est="'+e.id+'" value="'+esc(e.cedula||'')+'" placeholder="Cédula (opcional)" aria-label="Cédula del estudiante '+(i+1)+'">'+
+      '<button class="icon-btn" data-act="delest" data-est="'+e.id+'" aria-label="Quitar a '+esc(e.nombre)+'" title="Quitar estudiante">×</button></li>';
+  }).join('');
+  return '<section class="card"><h2>Sección '+anioL(sec.anio)+' · '+esc(sec.seccion)+'</h2>'+
+    '<label class="f"><span>Agregar estudiantes: uno por línea, con la cédula al final si la tienes (separada por coma)</span><textarea id="pasteEst" rows="5" placeholder="González Pérez Ana Lucía, 30123456&#10;Rojas Díaz Luis Miguel"></textarea></label>'+
+    '<div class="row" style="margin-top:10px"><button class="btn" data-act="addest">Agregar a la lista</button>'+
+    '<button class="btn ghost" data-act="sortest"'+(sec.estudiantes.length>1?'':' disabled')+'>Ordenar de la A a la Z</button></div>'+
+    (sec.estudiantes.length?'<ol class="estlist" style="list-style:none">'+list+'</ol>':'')+
+    '<div class="sep"></div><div class="row"><strong>Nueva sección</strong>'+
+    '<label class="f"><select id="newAnio" aria-label="Año">'+opts+'</select></label>'+
+    '<label class="f"><input type="text" id="newSec" maxlength="12" placeholder="Sección: B" style="width:9rem" autocomplete="off" aria-label="Letra de la sección"></label>'+
+    '<button class="btn ghost" data-act="addsec">Crear sección</button><span class="spacer"></span>'+
+    '<button class="btn danger sm" data-act="delsec" data-label="Eliminar esta sección">Eliminar esta sección</button></div></section>';
+}
+function exportView(){
+  var ne=0,na=0;S.secOrder.forEach(function(id){ne+=S.secs[id].estudiantes.length});
+  selAsigs().forEach(function(a){LAPSOS.forEach(function(l){na+=getPlan(a.id,l).length})});
+  var g=groups().length;
+  return '<section class="card"><h2>Exportar</h2><p class="lead">Descarga tus datos en un archivo de Excel o en un PDF listo para imprimir o entregar.</p>'+
+    '<div class="stats" style="margin:0 0 16px"><span><b>'+S.anios.length+'</b> años</span><span><b>'+S.asignaturas.length+'</b> asignaturas</span><span><b>'+na+'</b> actividades en los planes</span><span><b>'+S.secOrder.length+'</b> secciones</span><span><b>'+ne+'</b> estudiantes</span><span><b>'+g+'</b> listas de notas con datos</span></div>'+
+    '<fieldset><legend>Qué incluir</legend><div class="grid">'+
+    '<label class="opt"><input type="radio" name="scope" value="todo" checked><span>Todo<small>Datos personales, planes y notas</small></span></label>'+
+    '<label class="opt"><input type="radio" name="scope" value="plan"><span>Datos y planes<small>Sin notas de estudiantes</small></span></label>'+
+    '<label class="opt"><input type="radio" name="scope" value="notas"><span>Solo notas<small>Una lista por sección y asignatura</small></span></label></div></fieldset>'+
+    '<div class="row" style="margin-top:16px"><button class="btn" data-act="xlsx">Descargar Excel (.xlsx)</button><button class="btn" data-act="pdf">Descargar PDF</button></div>'+
+    '<p class="note" id="expMsg" style="margin-top:12px" role="status"></p></section>'+
+    accountHTML()+
+    '<section class="card"><h2>Copia de seguridad</h2><p class="lead">Guarda todos tus datos en un archivo (.json) dentro de la carpeta que quieras, por ejemplo en Documentos o en un pendrive. Es una copia extra por si quieres tener tus datos también en tu equipo. El archivo no está cifrado: guárdalo en un lugar seguro.</p>'+
+    '<div class="row"><button class="btn" data-act="backup">Guardar copia de seguridad</button><button class="btn ghost" data-act="restore">Restaurar desde una copia</button>'+
+    '<input type="file" id="restoreFile" accept=".json,application/json" hidden></div></section>'+
+    '<section class="card"><h2>Tus datos</h2><p class="lead">Se guardan automáticamente en tu usuario. Aquí puedes empezar de cero cuando termines con los datos de ejemplo o al cambiar de año escolar.</p>'+
+    '<div class="row"><button class="btn ghost" data-act="ejemplo">Cargar datos de ejemplo</button><button class="btn danger" data-act="clear" data-label="Borrar todos mis datos">Borrar todos mis datos</button></div></section>';
+}
+var views={perfil:perfilView,asig:asigView,plan:planView,notas:notasView,export:exportView,admin:adminView};
+
+function render(){
+  if(!session){$('#tabs').innerHTML='';$('#view').innerHTML=authHTML();return}
+  renderTabs();
+  $('#view').innerHTML=(conflict?conflictHTML():'')+views[ui.tab]();
+  if(ui.tab==='plan')updatePlanTotal();
+  if(ui.tab==='asig')asigSummary();
+}
+function go(tab){ui.tab=tab;render();window.scrollTo(0,0);if(tab==='admin'&&isAdmin&&!ui.adm.rows&&!ui.adm.loading)loadAdmin()}
+
+/* ---------- events ---------- */
+var view=$('#view');
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-go],[data-act],[data-plapso],[data-nlapso],[data-pgo]');
+  if(!t)return;
+  var d=t.dataset;
+  if(d.go){go(d.go);return}
+  if(d.plapso){ui.planLapso=+d.plapso;render();return}
+  if(d.nlapso){ui.nLapso=+d.nlapso;render();return}
+  if(d.pgo){var p=d.pgo.split('|');ui.planAsig=p[0];ui.planLapso=+p[1];go('plan');return}
+  if(d.act)act(d.act,t);
+});
+function confirmed(btn){
+  if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=btn.dataset.label;return true}
+  btn.dataset.armed='1';btn.textContent='Toca otra vez para confirmar';
+  setTimeout(function(){if(btn.isConnected&&btn.dataset.armed){delete btn.dataset.armed;btn.textContent=btn.dataset.label}},4000);
+  return false;
+}
+function parseEst(text){
+  return text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).map(function(l){
+    var parts=l.split(/[\t;,]/).map(function(x){return x.trim()}).filter(Boolean),ced='';
+    if(parts.length>1&&/^[VEve]?-?[\d.]{5,12}$/.test(parts[parts.length-1]))ced=parts.pop();
+    return {id:uid(),nombre:parts.join(' '),cedula:ced};
+  });
+}
+function act(a,t){
+  var sec=curSec();
+  if(a==='addcustom'){
+    var inp=$('#customAsig'),n=inp.value.trim();if(!n)return;
+    var id='c_'+uid();S.custom.push({id:id,n:n});S.asignaturas.push(id);touch('cfg');render();
+  }else if(a==='delcustom'){
+    var cid=t.dataset.id;S.custom=S.custom.filter(function(c){return c.id!==cid});S.asignaturas=S.asignaturas.filter(function(x){return x!==cid});delete S.planes[cid];touch('cfg');render();
+  }else if(a==='addact'){
+    ensurePlan(ui.planAsig,ui.planLapso).push({id:uid(),nombre:'',tipo:TIPOS[0],fecha:'',peso:''});touch('cfg');render();
+    var rows=$$('#planBody tr');if(rows.length)rows[rows.length-1].querySelector('input').focus();
+  }else if(a==='delact'){
+    var aid=t.closest('tr').dataset.aid,l=ensurePlan(ui.planAsig,ui.planLapso);
+    S.planes[ui.planAsig][ui.planLapso]=l.filter(function(x){return x.id!==aid});touch('cfg');render();
+  }else if(a==='equal'){
+    var ls=ensurePlan(ui.planAsig,ui.planLapso),n2=ls.length,base=Math.floor(10000/n2)/100,acc=0;
+    ls.forEach(function(x,i){x.peso=i<n2-1?base:+(100-acc).toFixed(2);acc+=base});
+    touch('cfg');render();
+  }else if(a==='copyplan'){
+    var src=getPlan(ui.planAsig,ui.planLapso),done=[],skip=[];
+    LAPSOS.forEach(function(l2){
+      if(l2===ui.planLapso)return;
+      if(getPlan(ui.planAsig,l2).length){skip.push(l2);return}
+      S.planes[ui.planAsig][l2]=src.map(function(x){return {id:uid(),nombre:x.nombre,tipo:x.tipo,fecha:'',peso:x.peso}});done.push(l2);
+    });
+    touch('cfg');render();
+    toast((done.length?'Plan copiado al lapso '+done.join(' y ')+'. ':'')+(skip.length?'El lapso '+skip.join(' y ')+' ya tiene actividades y no se tocó.':''));
+  }else if(a==='addsec'){
+    var an=+$('#newAnio').value,sc=$('#newSec').value.trim().toUpperCase();
+    if(!sc){toast('Escribe la letra o el nombre de la sección.');$('#newSec').focus();return}
+    var id2=uid();S.secs[id2]={id:id2,anio:an,seccion:sc,estudiantes:[],notas:{}};S.secOrder.push(id2);ui.nSec=id2;ui.manage=true;
+    touch('cfg');touch('sec',id2);render();
+  }else if(a==='manage'){ui.manage=!ui.manage;render()}
+  else if(a==='addest'){
+    var list=parseEst($('#pasteEst').value);
+    if(!list.length){toast('Pega o escribe al menos un estudiante.');return}
+    sec.estudiantes=sec.estudiantes.concat(list);touch('sec',sec.id);render();toast(list.length+(list.length===1?' estudiante agregado.':' estudiantes agregados.'));
+  }else if(a==='sortest'){
+    sec.estudiantes.sort(function(x,y){return x.nombre.localeCompare(y.nombre,'es')});touch('sec',sec.id);render();
+  }else if(a==='delest'){
+    var eid=t.dataset.est;sec.estudiantes=sec.estudiantes.filter(function(e){return e.id!==eid});delete sec.notas[eid];touch('sec',sec.id);render();
+  }else if(a==='delsec'){
+    if(!confirmed(t))return;
+    var sid=sec.id;delete S.secs[sid];S.secOrder=S.secOrder.filter(function(x){return x!==sid});removedSecs[sid]=1;delete dirtySecs[sid];
+    ui.nSec=null;ui.manage=false;touch('cfg');render();
+  }else if(a==='ejemplo'){
+    if(hasData()){if(!t.dataset.label)t.dataset.label=t.textContent;if(!confirmed(t))return}
+    loadExample();
+  }else if(a==='clear'){
+    if(!confirmed(t))return;
+    clearAll();
+  }else if(a==='admreload'){loadAdmin();
+  }else if(a==='admopen'){ui.adm.open=t.dataset.uid;render();var dt=$('#admDetail');if(dt&&dt.scrollIntoView)dt.scrollIntoView();
+  }else if(a==='admclose'){ui.adm.open=null;render();
+  }else if(a==='admxlsx'||a==='admpdf'){admExport(a==='admxlsx'?'xlsx':'pdf');
+  }else if(a==='admlist'){admList();
+  }else if(a==='admdel'){if(!confirmed(t))return;admDelete();
+  }else if(a==='authmode'){ui.authMode=t.dataset.mode;ui.authMsg=null;render();
+  }else if(a==='logout'){logout('Sesión cerrada.');
+  }else if(a==='deluser'){
+    if(!confirmed(t))return;deleteAccount();
+  }else if(a==='resetpw'){resetPw();
+  }else if(a==='reload'){location.reload();
+  }else if(a==='impopen'){ui.impOpen=!ui.impOpen;render();
+  }else if(a==='impok'){ui.impResult=null;render();
+  }else if(a==='imptemplate'){exportTemplate();
+  }else if(a==='impchoose'){
+    var im=impState();
+    if(!String(im.sec).trim()){toast('Escribe la sección, por ejemplo A.');var si=$('#impSec');if(si)si.focus();return}
+    $('#impFile').click();
+  }else if(a==='backup'){
+    var d=new Date(),f='Copia-seguridad-Zazarabicoa-'+d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'.json';
+    saveFile(f,JSON.stringify({app:'evaluacion-docente-zazarabicoa',version:1,fecha:d.toISOString(),datos:S},null,1));
+  }else if(a==='restore'){
+    if(hasData()){if(!t.dataset.label)t.dataset.label=t.textContent;if(!confirmed(t))return}
+    $('#restoreFile').click();
+  }else if(a==='xlsx'){exportXlsx()}
+  else if(a==='pdf'){exportPdf()}
+}
+function hasData(){
+  var p=S.perfil;return !!(p.apellidos||p.nombres||S.anios.length||S.asignaturas.length||S.secOrder.length);
+}
+view.addEventListener('input',function(ev){
+  var t=ev.target,d=t.dataset;
+  if(d.imp){impState()[d.imp]=t.value;return}
+  if(d.adm){ui.adm.q=t.value;var ab=$('#admBody');if(ab)ab.innerHTML=admRowsHTML();return}
+  if(d.p){S.perfil[d.p]=t.value;touch('cfg');return}
+  if(d.pf){
+    var id=t.closest('tr').dataset.aid,x=getPlan(ui.planAsig,ui.planLapso).filter(function(a){return a.id===id})[0];if(!x)return;
+    if(d.pf==='peso'){var n=parseNum(t.value);x.peso=n==null?'':Math.min(100,Math.max(0,n))}else x[d.pf]=t.value;
+    touch('cfg');if(d.pf==='peso')updatePlanTotal();return;
+  }
+  if(d.nota){
+    var p=d.nota.split('|'),sec=curSec(),v=parseNum(t.value);
+    if(!sec)return;
+    sec.notas[p[0]]=sec.notas[p[0]]||{};
+    if(v==null)delete sec.notas[p[0]][p[1]];else sec.notas[p[0]][p[1]]=Math.min(20,Math.max(1,v));
+    touch('sec',sec.id);updateComputed();return;
+  }
+  if(d.en){
+    var s2=curSec(),e=s2.estudiantes.filter(function(q){return q.id===d.est})[0];
+    if(e){e[d.en]=t.value;touch('sec',s2.id)}
+  }
+});
+view.addEventListener('change',function(ev){
+  var t=ev.target,d=t.dataset;
+  if(t.id==='au_show'){['au_pw','au_pw2','gate_pw'].forEach(function(i){var e=$('#'+i);if(e)e.type=t.checked?'text':'password'});return}
+  if(d.anio){var n=+d.anio,i=S.anios.indexOf(n);if(t.checked&&i<0)S.anios.push(n);if(!t.checked&&i>-1)S.anios.splice(i,1);S.anios.sort();touch('cfg');asigSummary();return}
+  if(d.asig){
+    var i2=S.asignaturas.indexOf(d.asig);if(t.checked&&i2<0)S.asignaturas.push(d.asig);if(!t.checked&&i2>-1)S.asignaturas.splice(i2,1);
+    touch('cfg');asigSummary();return;
+  }
+  if(t.id==='impFile'){if(t.files&&t.files[0])importFile(t.files[0]);t.value='';return}
+  if(t.id==='restoreFile'){if(t.files&&t.files[0])restoreFrom(t.files[0]);t.value='';return}
+  if(t.id==='planAsig'){ui.planAsig=t.value;render();return}
+  if(t.id==='nSec'){ui.nSec=t.value;render();return}
+  if(t.id==='nAsig'){ui.nAsig=t.value;render();return}
+  if(d.nota){
+    var v=parseNum(t.value);t.value=v==null?'':String(Math.min(20,Math.max(1,v))).replace('.',',');
+  }
+  if(d.pf==='peso'){var n3=parseNum(t.value);t.value=n3==null?'':String(Math.min(100,Math.max(0,n3))).replace('.',',')}
+});
+view.addEventListener('keydown',function(ev){
+  var t=ev.target;
+  if(ev.key==='Enter'&&t.dataset&&t.dataset.nota){
+    ev.preventDefault();
+    var next=$('[data-nota][data-r="'+(+t.dataset.r+1)+'"][data-c="'+t.dataset.c+'"]');
+    if(next){next.focus();next.select()}
+  }else if(ev.key==='Enter'&&t.id==='newSec'){ev.preventDefault();act('addsec',t)}
+  else if(ev.key==='Enter'&&t.id==='customAsig'){ev.preventDefault();act('addcustom',t)}
+});
+
+/* ---------- example / clear ---------- */
+function loadExample(){
+  var s=emptyState();
+  Object.assign(s.perfil,{apellidos:'Docente de Ejemplo',nombres:'María',cedula:'V-00.000.000',titulo:'Licenciada en Educación, mención Matemática',cargo:'Docente de aula',telefono:'0414-0000000',correo:'docente@ejemplo.com',institucion:'Institución Educativa Zazarabicoa',anioEscolar:'2026-2027'});
+  s.anios=[3,4];s.asignaturas=['mat'];
+  function A(n,t,p){return {id:uid(),nombre:n,tipo:t,fecha:'',peso:p}}
+  var l1=[A('Prueba 1','Prueba escrita',30),A('Taller de ecuaciones','Taller',20),A('Exposición de funciones','Exposición',20),A('Trabajo de investigación','Trabajo de investigación',30)];
+  var l2=[A('Prueba 2','Prueba escrita',40),A('Taller de geometría','Taller',30),A('Proyecto de estadística','Proyecto',30)];
+  s.planes={mat:{1:l1,2:l2,3:[]}};
+  var nombres=['Alvarado Mora Ana','Briceño Salas Luis','Castillo Ruiz Daniela','Durán Peña José','Escalona Vera Camila','Fuentes Lara Miguel'];
+  var N1=[[16,14,18,15],[12,10,13,11],[19,18,17,20],[8,9,11,10],[14,15,13,16],[6,8,10,9]];
+  var N2=[[17,15,16],[11,12,10],[18,19,18],[9,10,8],[15,14,16],[7,9,8]];
+  var id=uid(),est=nombres.map(function(n){return {id:uid(),nombre:n,cedula:''}}),notas={};
+  est.forEach(function(e,i){notas[e.id]={};l1.forEach(function(a,k){notas[e.id][a.id]=N1[i][k]});l2.forEach(function(a,k){notas[e.id][a.id]=N2[i][k]})});
+  s.secs[id]={id:id,anio:3,seccion:'A',estudiantes:est,notas:notas};s.secOrder=[id];
+  Object.keys(S.secs).forEach(function(k){removedSecs[k]=1});
+  S=s;ui.nSec=id;ui.nAsig='mat';ui.nLapso=1;ui.planAsig='mat';ui.manage=false;
+  markAllDirty();touch('cfg');render();toast('Datos de ejemplo cargados. Bórralos en Exportar cuando quieras empezar con los tuyos.');
+}
+function markAllDirty(){dirtyCfg=true;S.secOrder.forEach(function(id){dirtySecs[id]=1});}
+function clearAll(){
+  Object.keys(S.secs).forEach(function(k){removedSecs[k]=1});
+  S=emptyState();ui.nSec=null;ui.nAsig=null;ui.planAsig=null;ui.manage=false;touch('cfg');render();toast('Se borraron todos los datos.');
+}
+
+/* ---------- exports ---------- */
+function scopeVal(){var r=$('input[name="scope"]:checked');return r?r.value:'todo'}
+function expMsg(t,cls){var el=$('#expMsg');if(!el){toast(t);return}el.textContent=t;el.className='note '+(cls||'')}
+function groups(){
+  var out=[];
+  S.secOrder.forEach(function(id){
+    var sec=S.secs[id];if(!sec||!sec.estudiantes.length)return;
+    selAsigs().forEach(function(a){if(hasNotes(sec,a.id))out.push({sec:sec,asig:a})});
+  });
+  return out;
+}
+var dlP=null;
+function saveFile(filename,data){
+  if(!dlP)dlP=getCap('downloads');
+  return dlP.then(function(dl){
+    if(!dl){
+      if(!window.claude){
+        try{var blob=new Blob([data],{type:'application/octet-stream'}),a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();
+          expMsg('Listo: '+filename+' (revisa tu carpeta de descargas).','ok');
+        }catch(e){expMsg('No se pudo descargar el archivo.','bad')}
+        return;
+      }
+      expMsg('La descarga no está disponible en esta vista de la página.','bad');return;
+    }
+    return dl.save({filename:filename,data:data}).then(function(){expMsg('Listo: '+filename,'ok')},function(e){
+      if(e&&e.code==='declined')expMsg('Descarga cancelada.');
+      else expMsg('No se pudo descargar el archivo ('+((e&&e.code)||'error')+').','bad');
+    });
+  });
+}
+function baseName(ext){var ap=slug(S.perfil.apellidos);return 'Evaluacion-docente-Zazarabicoa'+(ap?'-'+ap:'')+'.'+ext}
+function datosRows(){
+  var p=S.perfil;
+  return [['Docente',fullName()],['Cédula de identidad',p.cedula],['Título o especialidad',p.titulo],['Cargo',p.cargo],['Teléfono',p.telefono],['Correo electrónico',p.correo],
+    ['Institución',p.institucion||'Zazarabicoa'],['Año escolar',p.anioEscolar],
+    ['Años que atiende',S.anios.map(anioL).join(', ')],['Asignaturas que imparte',selAsigs().map(function(a){return a.n}).join('; ')]];
+}
+function planRows(asig){
+  var rows=[];
+  LAPSOS.forEach(function(l){
+    getPlan(asig.id,l).forEach(function(a){rows.push(['Lapso '+l,a.nombre||'(sin nombre)',a.tipo,a.fecha?new Date(a.fecha+'T00:00:00').toLocaleDateString('es-VE'):'',+a.peso||0])});
+  });
+  return rows;
+}
+function exportXlsx(){
+  if(!window.XLSX){expMsg('No se pudo cargar la librería de Excel. Revisa tu conexión e inténtalo otra vez.','bad');return}
+  var scope=scopeVal(),wb=XLSX.utils.book_new(),names={};
+  function addSheet(aoa,name,widths){
+    var base=name.replace(/[\[\]:*?\/\\]/g,'-').slice(0,28)||'Hoja',n=base,i=2;
+    while(names[n]){n=base.slice(0,26)+' '+i++}
+    names[n]=1;var ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws['!cols']=widths.map(function(w){return {wch:w}});XLSX.utils.book_append_sheet(wb,ws,n);
+  }
+  if(scope!=='notas'){
+    addSheet([['Evaluación docente de Zazarabicoa'],[]].concat(datosRows()),'Datos personales',[28,60]);
+    var pa=[['Evaluación docente de Zazarabicoa · Plan de evaluación'],[],['Asignatura','Lapso','Actividad','Tipo','Fecha','Peso (%)']];
+    selAsigs().forEach(function(a){
+      LAPSOS.forEach(function(l){
+        var list=getPlan(a.id,l);
+        list.forEach(function(x){pa.push([a.n,'Lapso '+l,x.nombre||'(sin nombre)',x.tipo,x.fecha?new Date(x.fecha+'T00:00:00').toLocaleDateString('es-VE'):'',+x.peso||0])});
+        if(list.length)pa.push([a.n,'Lapso '+l,'Total del lapso','','',planTotal(list)]);
+      });
+    });
+    addSheet(pa,'Plan de evaluación',[38,10,34,24,12,10]);
+  }
+  if(scope!=='plan'){
+    groups().forEach(function(g){
+      var sec=g.sec,asig=g.asig,acts=LAPSOS.map(function(l){return getPlan(asig.id,l)});
+      var h=['N°','Estudiante','Cédula'];
+      LAPSOS.forEach(function(l,i){acts[i].forEach(function(a){h.push('L'+l+' · '+(a.nombre||a.tipo)+' ('+(+a.peso||0)+'%)')});h.push('Definitiva lapso '+l)});
+      h.push('Definitiva anual');
+      var aoa=[['Evaluación docente de Zazarabicoa'],['Docente',fullName()],['Año y sección',anioL(sec.anio)+' · Sección '+sec.seccion],['Asignatura',asig.n],['Año escolar',S.perfil.anioEscolar],[],h];
+      sec.estudiantes.forEach(function(e,i){
+        var r=[i+1,e.nombre,e.cedula||''];
+        LAPSOS.forEach(function(l,k){acts[k].forEach(function(a){var v=noteOf(sec,e.id,a.id);r.push(v==null?'':v)});var d=lapsoDef(sec,e,asig.id,l).def;r.push(d==null?'':d)});
+        var an=anualDef(sec,e,asig.id).def;r.push(an==null?'':an);aoa.push(r);
+      });
+      addSheet(aoa,anioL(sec.anio)+' '+sec.seccion+' - '+asig.s,[5,34,14].concat(h.slice(3).map(function(){return 16})));
+    });
+  }
+  if(!wb.SheetNames.length){expMsg('No hay nada que exportar con esa selección. Carga notas primero.','bad');return}
+  var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  saveFile(baseName('xlsx'),buf);
+}
+function exportPdf(){
+  if(!window.jspdf||!window.jspdf.jsPDF){expMsg('No se pudo cargar la librería de PDF. Revisa tu conexión e inténtalo otra vez.','bad');return}
+  if(scopeVal()==='notas'&&!groups().length){expMsg('No hay notas para exportar todavía. Carga notas primero.','bad');return}
+  var scope=scopeVal(),doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+  if(typeof doc.autoTable!=='function'){expMsg('No se pudo cargar la librería de tablas del PDF.','bad');return}
+  var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=40,y=M,GREEN=[23,112,62];
+  var tableBase={theme:'grid',margin:{left:M,right:M,bottom:44},styles:{fontSize:8.5,cellPadding:3,lineColor:[200,210,200]},headStyles:{fillColor:GREEN,textColor:255}};
+  function title(t,size){doc.setFont('helvetica','bold');doc.setFontSize(size||13);doc.setTextColor(15,77,43);doc.text(t,M,y);y+=(size||13)+6}
+  function sub(t){doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(90,100,92);doc.text(t,M,y);y+=14}
+  function room(h){if(y>H-44-h){doc.addPage();y=M}}
+  function after(){y=doc.lastAutoTable.finalY+16}
+  try{doc.addImage(LOGO,'JPEG',M,y-8,46,47)}catch(e){}
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(15,77,43);doc.text('Evaluación docente de Zazarabicoa',M+60,y+14);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(90,100,92);doc.text((S.perfil.institucion||'Institución educativa Zazarabicoa')+' · Año escolar '+(S.perfil.anioEscolar||''),M+60,y+31);
+  y+=62;
+  if(scope!=='notas'){
+    title('Datos personales');
+    doc.autoTable(Object.assign({},tableBase,{startY:y,theme:'plain',body:datosRows().filter(function(r){return r[1]}),styles:{fontSize:9.5,cellPadding:3},columnStyles:{0:{fontStyle:'bold',cellWidth:170}}}));
+    after();
+    selAsigs().forEach(function(a){
+      var any=LAPSOS.some(function(l){return getPlan(a.id,l).length});if(!any)return;
+      room(90);title('Plan de evaluación · '+a.n,12);
+      var body=[];
+      LAPSOS.forEach(function(l){
+        var list=getPlan(a.id,l);if(!list.length)return;
+        list.forEach(function(x){body.push(['Lapso '+l,x.nombre||'(sin nombre)',x.tipo,x.fecha?new Date(x.fecha+'T00:00:00').toLocaleDateString('es-VE'):'',String(+x.peso||0)])});
+        body.push([{content:'Total del lapso '+l,colSpan:4,styles:{fontStyle:'bold',halign:'right',fillColor:[232,239,227]}},{content:planTotal(list)+' %',styles:{fontStyle:'bold',fillColor:[232,239,227]}}]);
+      });
+      doc.autoTable(Object.assign({},tableBase,{startY:y,head:[['Lapso','Actividad','Tipo','Fecha','Peso (%)']],body:body,columnStyles:{4:{halign:'right'}}}));
+      after();
+    });
+  }
+  if(scope!=='plan'){
+    groups().forEach(function(g){
+      var sec=g.sec,asig=g.asig;
+      doc.addPage();y=M;
+      title(asig.n,15);sub(anioL(sec.anio)+' · Sección '+sec.seccion+' · Docente: '+fullName());y+=4;
+      var redCell=function(data){
+        if(data.section==='body'&&data.column.index>=1){var raw=data.cell.raw,n=parseFloat(String(raw&&raw.content!=null?raw.content:raw));if(!isNaN(n)&&n<10)data.cell.styles.textColor=[190,30,30]}
+      };
+      LAPSOS.forEach(function(l){
+        var acts=getPlan(asig.id,l);if(!acts.length)return;
+        room(80);
+        var head=['Estudiante'].concat(acts.map(function(a){return (a.nombre||a.tipo)+' ('+(+a.peso||0)+'%)'}),['Definitiva']);
+        var body=sec.estudiantes.map(function(e,i){
+          return [(i+1)+'. '+e.nombre].concat(acts.map(function(a){var v=noteOf(sec,e.id,a.id);return v==null?'':String(v).replace('.',',')}),[(function(){var r=lapsoDef(sec,e,asig.id,l);return r.def==null?'':pad2(r.def)+(r.prov?' (prov.)':'')})()]);
+        });
+        doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(40,50,44);doc.text('Lapso '+l,M,y);y+=6;
+        doc.autoTable(Object.assign({},tableBase,{startY:y,head:[head],body:body,didParseCell:redCell,columnStyles:{0:{cellWidth:170}},bodyStyles:{halign:'center'}}));
+        after();
+      });
+      room(80);
+      doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(40,50,44);doc.text('Resumen del año',M,y);y+=6;
+      doc.autoTable(Object.assign({},tableBase,{startY:y,head:[['Estudiante','Lapso 1','Lapso 2','Lapso 3','Definitiva anual']],didParseCell:redCell,columnStyles:{0:{cellWidth:170}},bodyStyles:{halign:'center'},
+        body:sec.estudiantes.map(function(e,i){
+          function f(r){return r.def==null?'':pad2(r.def)}
+          return [(i+1)+'. '+e.nombre].concat(LAPSOS.map(function(l){return f(lapsoDef(sec,e,asig.id,l))}),[f(anualDef(sec,e,asig.id))]);
+        })}));
+      after();
+    });
+  }
+  var pages=doc.internal.getNumberOfPages();
+  for(var i=1;i<=pages;i++){
+    doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(120,130,122);
+    doc.text('Evaluación docente de Zazarabicoa · generado el '+new Date().toLocaleDateString('es-VE'),M,H-22);
+    doc.text('Página '+i+' de '+pages,W-M,H-22,{align:'right'});
+  }
+  saveFile(baseName('pdf'),doc.output('arraybuffer'));
+}
+
+function restoreFrom(file){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var o=JSON.parse(r.result),d=o&&o.datos?o.datos:o;
+      if(!d||typeof d!=='object'||!d.perfil)throw new Error('formato');
+      var ns=normalize(d);
+      Object.keys(S.secs).forEach(function(k){if(!ns.secs[k])removedSecs[k]=1});
+      S=ns;ui.nSec=S.secOrder[0]||null;ui.nAsig=null;ui.planAsig=null;ui.manage=false;
+      markAllDirty();touch('cfg');render();toast('Copia restaurada.');
+    }catch(e){expMsg('Ese archivo no es una copia de seguridad válida.','bad')}
+  };
+  r.onerror=function(){expMsg('No se pudo leer el archivo.','bad')};
+  r.readAsText(file);
+}
+/* ---------- import a whole section from Excel ---------- */
+function impState(){
+  var list=selAsigs();
+  if(!ui.imp)ui.imp={anio:String(S.anios[0]||1),sec:'',asig:ui.nAsig||(list[0]&&list[0].id)||'',lapso:'1'};
+  if(ui.imp.asig&&!list.some(function(a){return a.id===ui.imp.asig}))ui.imp.asig=list[0]?list[0].id:'';
+  return ui.imp;
+}
+function importPanelHTML(){
+  var im=impState();
+  var anios=ANIOS.map(function(a){return '<option value="'+a.n+'"'+(String(a.n)===String(im.anio)?' selected':'')+'>'+a.l+'</option>'}).join('');
+  var asigs='<option value="">Solo estudiantes, sin notas</option>'+selAsigs().map(function(a){return '<option value="'+a.id+'"'+(a.id===im.asig?' selected':'')+'>'+esc(a.n)+'</option>'}).join('');
+  var lapsos=LAPSOS.map(function(l){return '<option value="'+l+'"'+(String(l)===String(im.lapso)?' selected':'')+'>Lapso '+l+'</option>'}).join('');
+  return '<section class="card"><h2>Importar una sección desde Excel</h2>'+
+    '<p class="lead">Importa la lista completa de una sección de una sola vez. Elige a qué año y sección pertenece, y a qué asignatura y lapso van las notas.</p>'+
+    '<div class="row">'+
+    '<label class="f"><span>Año</span><select id="impAnio" data-imp="anio">'+anios+'</select></label>'+
+    '<label class="f"><span>Sección</span><input type="text" id="impSec" data-imp="sec" maxlength="12" placeholder="A" style="width:6rem" autocomplete="off" value="'+esc(im.sec)+'"></label>'+
+    '<label class="f" style="flex:1;min-width:15rem"><span>Asignatura de las notas</span><select id="impAsig" data-imp="asig">'+asigs+'</select></label>'+
+    '<label class="f"><span>Lapso</span><select id="impLapso" data-imp="lapso">'+lapsos+'</select></label></div>'+
+    '<p class="note" style="margin:14px 0 6px"><strong>Formato del archivo</strong>, una fila por estudiante y los títulos en la fila 1:</p>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>A</th><th>B</th><th>C</th><th>D a H</th><th>I</th></tr></thead><tbody><tr><td>Cédula</td><td>Apellidos</td><td>Nombres</td><td>Evaluación 1 a 5 (hasta 5 notas)</td><td>Definitiva</td></tr></tbody></table></div>'+
+    '<p class="note" style="margin:8px 0 14px">Las notas van de 01 a 20; deja vacía la casilla si no hay nota. Las evaluaciones se asignan en orden a las actividades del plan del lapso. La definitiva se calcula con tu plan, así que la columna I se puede dejar vacía.</p>'+
+    '<div class="row"><button class="btn" data-act="impchoose">Elegir archivo de Excel e importar</button>'+
+    '<button class="btn ghost" data-act="imptemplate">Descargar plantilla de Excel</button>'+
+    '<input type="file" id="impFile" accept=".xlsx,.xls,.csv" hidden></div>'+
+    '<p class="note" id="impMsg" role="status" style="margin-top:10px"></p></section>';
+}
+function impMsg(t,cls){var el=$('#impMsg');if(!el){toast(t);return}el.textContent=t;el.className='note '+(cls||'')}
+function exportTemplate(){
+  if(!window.XLSX){toast('No se pudo cargar la librería de Excel. Revisa tu conexión.');return}
+  var h=['Cédula de identidad','Apellidos','Nombres','Evaluación 1','Evaluación 2','Evaluación 3','Evaluación 4','Evaluación 5','Definitiva'];
+  var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([h]);
+  ws['!cols']=[22,28,28,14,14,14,14,14,12].map(function(w){return {wch:w}});
+  XLSX.utils.book_append_sheet(wb,ws,'Lista de la sección');
+  var ins=[['Cómo llenar la lista de la sección'],[],['Columna','Contenido'],['A','Cédula de identidad'],['B','Apellidos'],['C','Nombres'],
+    ['D a H','Notas de hasta 5 evaluaciones, de 01 a 20. Déjalas vacías si no hay nota.'],
+    ['I','Definitiva del lapso. La aplicación la calcula con tu plan de evaluación; puedes dejarla vacía.'],[],
+    ['Ejemplo de dos filas (no se importa desde esta hoja)'],h,
+    ['V-30123456','González Pérez','Ana Lucía',15,16,14,'','',15],['V-30654321','Rojas Díaz','Luis Miguel',12,10,'','','',''],[],
+    ['Escribe tus estudiantes en la hoja "Lista de la sección", desde la fila 2, sin cambiar el orden de las columnas.']];
+  var w2=XLSX.utils.aoa_to_sheet(ins);w2['!cols']=[22,70,16,14,14,14,14,14,12].map(function(w){return {wch:w}});
+  XLSX.utils.book_append_sheet(wb,w2,'Instrucciones');
+  saveFile('Plantilla-lista-seccion-Zazarabicoa.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
+}
+function normKey(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim()}
+function cedKey(s){return String(s==null?'':s).replace(/\D/g,'')}
+function importFile(file){
+  if(!window.XLSX){impMsg('No se pudo cargar la librería de Excel. Revisa tu conexión e inténtalo otra vez.','bad');return}
+  var r=new FileReader();
+  r.onerror=function(){impMsg('No se pudo leer el archivo.','bad')};
+  r.onload=function(){
+    var rows;
+    try{var wb=XLSX.read(r.result,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''})}
+    catch(e){impMsg('No se pudo leer el archivo. Usa un archivo de Excel (.xlsx) con el formato de la plantilla.','bad');return}
+    doImport(rows,impState());
+  };
+  r.readAsArrayBuffer(file);
+}
+function doImport(rows,im){
+  var anio=+im.anio,secName=String(im.sec).trim().toUpperCase(),asig=im.asig,lapso=+im.lapso;
+  var first=rows[0]||[],start=(/c[eé]dula/i.test(String(first[0]))||/apellid/i.test(String(first[1])))?1:0;
+  var data=rows.slice(start).filter(function(r){return String(r[1]||'').trim()||String(r[2]||'').trim()});
+  if(!data.length){impMsg('No encontré estudiantes en el archivo. Revisa que las columnas sean cédula, apellidos y nombres, y que la lista esté en la primera hoja.','bad');return}
+  var maxK=0,hasDef=false;
+  data.forEach(function(r){for(var k=0;k<5;k++){if(parseNum(r[3+k])!=null&&k+1>maxK)maxK=k+1}if(String(r[8]==null?'':r[8]).trim())hasDef=true});
+  var sec=null;
+  S.secOrder.forEach(function(id){var x=S.secs[id];if(x.anio===anio&&String(x.seccion).toUpperCase()===secName)sec=x});
+  var created=false;
+  if(!sec){var nid=uid();sec={id:nid,anio:anio,seccion:secName,estudiantes:[],notas:{}};S.secs[nid]=sec;S.secOrder.push(nid);created=true}
+  var plan=asig?getPlan(asig,lapso):[],planCreated=false,skipped=0;
+  if(asig&&maxK>0){
+    if(!plan.length){
+      plan=ensurePlan(asig,lapso);
+      var base=Math.floor(10000/maxK)/100,acc=0;
+      for(var k=0;k<maxK;k++){plan.push({id:uid(),nombre:'Evaluación '+(k+1),tipo:'Otra actividad',fecha:'',peso:k<maxK-1?base:+(100-acc).toFixed(2)});acc+=base}
+      planCreated=true;
+    }
+    if(maxK>plan.length)skipped=maxK-plan.length;
+  }
+  var added=0,existed=0,notasN=0;
+  data.forEach(function(r){
+    var ced=String(r[0]==null?'':r[0]).trim(),ape=String(r[1]||'').trim(),nom=String(r[2]||'').trim(),nombre=(ape+' '+nom).trim();
+    var est=sec.estudiantes.filter(function(e){return (cedKey(ced)&&cedKey(e.cedula)===cedKey(ced))||normKey(e.nombre)===normKey(nombre)})[0];
+    if(est){existed++;if(!est.cedula&&ced)est.cedula=ced}
+    else{est={id:uid(),nombre:nombre,cedula:ced,apellidos:ape,nombres:nom};sec.estudiantes.push(est);added++}
+    if(asig&&plan.length){
+      for(var k=0;k<Math.min(5,plan.length);k++){
+        var v=parseNum(r[3+k]);
+        if(v!=null){sec.notas[est.id]=sec.notas[est.id]||{};sec.notas[est.id][plan[k].id]=Math.min(20,Math.max(1,v));notasN++}
+      }
+    }
+  });
+  var msg='Sección '+anioL(anio)+' · '+secName+(created?' creada':'')+': '+added+(added===1?' estudiante nuevo':' estudiantes nuevos')+(existed?', '+existed+' que ya estaban':'')+'.';
+  if(asig&&maxK>0)msg+=' Se importaron '+notasN+' notas en '+asigById(asig).n+', lapso '+lapso+'.';
+  else if(!asig&&maxK>0)msg+=' El archivo trae notas, pero no elegiste asignatura, así que no se importaron.';
+  else if(asig)msg+=' El archivo no traía notas.';
+  if(planCreated)msg+=' Ese lapso no tenía plan, así que creé '+maxK+' actividades llamadas Evaluación 1 a '+maxK+' con pesos iguales. Ajusta nombres y pesos en Plan de evaluación.';
+  if(skipped)msg+=' Las últimas '+skipped+' columnas de evaluación no se importaron porque el plan del lapso solo tiene '+plan.length+' actividades. Agrega actividades al plan y vuelve a importar.';
+  if(hasDef)msg+=' La definitiva se calcula con tu plan; la columna Definitiva del archivo no se usó.';
+  ui.nSec=sec.id;if(asig){ui.nAsig=asig;ui.nLapso=lapso}
+  ui.impOpen=false;ui.manage=false;ui.impResult=msg;ui.tab='notas';
+  touch('cfg');touch('sec',sec.id);render();window.scrollTo(0,0);
+}
+/* ---------- administración ---------- */
+function stNames(st){
+  var all=ASIGS.concat(st.custom.map(function(c){return {id:c.id,n:c.n}}));
+  return st.asignaturas.map(function(id){var a=all.filter(function(x){return x.id===id})[0];return a?a.n:id});
+}
+function fmtDate(d){try{return d?d.toLocaleString('es-VE',{dateStyle:'short',timeStyle:'short'}):'—'}catch(e){return '—'}}
+async function checkAdmin(){
+  isAdmin=false;
+  try{await fdb.collection('docentes').limit(1).get();isAdmin=true}catch(e){}
+  if(session&&isAdmin)renderTabs();
+}
+async function loadAdmin(){
+  var a=ui.adm;a.loading=true;a.err='';render();
+  try{
+    var snap=await fdb.collection('docentes').get();
+    a.rows=snap.docs.map(function(d){
+      var x=d.data(),st=null,ests=0;
+      try{st=normalize(JSON.parse(x.datos||'{}'))}catch(e){}
+      if(st)st.secOrder.forEach(function(id){ests+=st.secs[id].estudiantes.length});
+      var t=x.actualizado&&x.actualizado.toDate?x.actualizado.toDate():null;
+      return {uid:d.id,usuario:x.usuario||'(sin nombre)',nombre:st?(st.perfil.nombres+' '+st.perfil.apellidos).trim():'',asigs:st?st.asignaturas.length:0,secs:st?st.secOrder.length:0,ests:ests,fecha:t,kb:Math.round(String(x.datos||'').length/1024),st:st};
+    }).sort(function(p,q){return p.usuario.localeCompare(q.usuario,'es')});
+  }catch(e){a.err=authMsg(e)}
+  a.loading=false;if(session&&ui.tab==='admin')render();
+}
+function admRows(){
+  var q=normKey(ui.adm.q);
+  return (ui.adm.rows||[]).filter(function(r){return !q||normKey(r.usuario+' '+r.nombre).indexOf(q)>-1});
+}
+function admRowsHTML(){
+  var rows=admRows();
+  if(!rows.length)return '<tr><td colspan="8" class="dim">'+(ui.adm.rows&&ui.adm.rows.length?'Ningún docente coincide con la búsqueda.':'Todavía no hay docentes registrados.')+'</td></tr>';
+  return rows.map(function(r){
+    return '<tr><td>'+esc(r.usuario)+(r.uid===session.uid?' <span class="tag none">tú</span>':'')+'</td><td>'+esc(r.nombre)+'</td><td class="num">'+r.asigs+'</td><td class="num">'+r.secs+'</td><td class="num">'+r.ests+'</td><td>'+esc(fmtDate(r.fecha))+'</td><td class="num">'+r.kb+' KB</td>'+
+      '<td><button class="btn ghost sm" data-act="admopen" data-uid="'+esc(r.uid)+'">Ver</button></td></tr>';
+  }).join('');
+}
+function adminView(){
+  if(!isAdmin)return '<section class="card"><h2>Administración</h2><p class="lead">Tu usuario no tiene permiso de administrador.</p></section>';
+  var a=ui.adm,rows=a.rows||[],te=0,ts=0;
+  rows.forEach(function(r){te+=r.ests;ts+=r.secs});
+  var out='<section class="card"><h2>Administración</h2><p class="lead">Todos los docentes registrados. Es una vista de solo lectura: puedes ver y descargar sus datos, pero no cambiar sus notas.</p>'+
+    '<div class="row"><label class="f" style="flex:1;min-width:14rem"><span>Buscar docente</span><input type="text" id="adm_q" data-adm="q" value="'+esc(a.q)+'" placeholder="Usuario o nombre" autocomplete="off"></label>'+
+    '<button class="btn ghost" data-act="admreload" style="align-self:flex-end">Actualizar</button>'+
+    '<button class="btn" data-act="admlist" style="align-self:flex-end"'+(rows.length?'':' disabled')+'>Descargar lista en Excel</button></div>';
+  if(a.err)out+='<p class="bad" role="alert" style="margin:12px 0 0">'+esc(a.err)+'</p>';
+  if(a.loading&&!a.rows)out+='<p class="note" style="margin-top:12px">Cargando docentes…</p>';
+  else out+='<div class="stats"><span><b>'+rows.length+'</b> docentes</span><span><b>'+ts+'</b> secciones</span><span><b>'+te+'</b> estudiantes</span></div>'+
+    '<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Usuario</th><th>Nombre</th><th class="num">Asignaturas</th><th class="num">Secciones</th><th class="num">Estudiantes</th><th>Última actualización</th><th class="num">Tamaño</th><th><span class="sr">Acciones</span></th></tr></thead><tbody id="admBody">'+admRowsHTML()+'</tbody></table></div>';
+  out+='</section>';
+  if(a.open)out+=admDetailHTML(a.open);
+  return out;
+}
+function admDetailHTML(uid){
+  var r=(ui.adm.rows||[]).filter(function(x){return x.uid===uid})[0];
+  if(!r||!r.st)return '';
+  var st=r.st,p=st.perfil,all=ASIGS.concat(st.custom.map(function(c){return {id:c.id,n:c.n}}));
+  var datos=[['Nombre',r.nombre],['Usuario',r.usuario],['Cédula',p.cedula],['Título o especialidad',p.titulo],['Cargo',p.cargo],['Teléfono',p.telefono],['Correo',p.correo],['Institución',p.institucion],['Año escolar',p.anioEscolar],['Años que atiende',st.anios.map(anioL).join(', ')],['Asignaturas',stNames(st).join('; ')]].filter(function(x){return x[1]});
+  var secs=st.secOrder.map(function(id){var x=st.secs[id];return '<tr><td>'+anioL(x.anio)+' · Sección '+esc(x.seccion)+'</td><td class="num">'+x.estudiantes.length+'</td></tr>'}).join('');
+  var planes=st.asignaturas.map(function(id){
+    var a=all.filter(function(x){return x.id===id})[0],nm=a?a.n:id;
+    return '<tr><td>'+esc(nm)+'</td>'+LAPSOS.map(function(l){
+      var list=(st.planes[id]&&st.planes[id][l])||[],ps=planStatus(planTotal(list),list.length);
+      return '<td><span class="tag '+ps.cls+'">'+ps.txt+'</span></td>';
+    }).join('')+'</tr>';
+  }).join('');
+  var own=uid===session.uid;
+  return '<section class="card" id="admDetail"><h2>'+esc(r.usuario)+'</h2><p class="lead">Datos guardados de este docente, en solo lectura.</p>'+
+    '<div class="tbl-wrap"><table><tbody>'+datos.map(function(x){return '<tr><th scope="row" style="width:12rem">'+esc(x[0])+'</th><td>'+esc(x[1])+'</td></tr>'}).join('')+'</tbody></table></div>'+
+    (secs?'<h3 style="margin:16px 0 8px;font-size:1.15rem">Secciones</h3><div class="tbl-wrap"><table><thead><tr><th>Sección</th><th class="num">Estudiantes</th></tr></thead><tbody>'+secs+'</tbody></table></div>':'')+
+    (planes?'<h3 style="margin:16px 0 8px;font-size:1.15rem">Planes de evaluación (suma de pesos)</h3><div class="tbl-wrap"><table><thead><tr><th>Asignatura</th><th>Lapso 1</th><th>Lapso 2</th><th>Lapso 3</th></tr></thead><tbody>'+planes+'</tbody></table></div>':'')+
+    '<div class="row" style="margin-top:16px"><button class="btn" data-act="admxlsx">Descargar Excel de este docente</button><button class="btn" data-act="admpdf">Descargar PDF de este docente</button>'+
+    '<button class="btn ghost" data-act="admclose">Cerrar</button><span class="spacer"></span>'+
+    '<button class="btn danger sm" data-act="admdel" data-label="Eliminar los datos de este docente"'+(own?' disabled title="No puedes eliminar tus propios datos desde aquí"':'')+'>Eliminar los datos de este docente</button></div>'+
+    '<p class="note" style="margin:10px 0 0">Eliminar borra solo sus datos guardados. Para quitarle también el acceso, elimina su usuario en Firebase, en Authentication > Usuarios.</p></section>';
+}
+function admExport(kind){
+  var r=(ui.adm.rows||[]).filter(function(x){return x.uid===ui.adm.open})[0];
+  if(!r||!r.st)return;
+  var back=S;S=r.st;
+  try{if(kind==='xlsx')exportXlsx();else exportPdf()}finally{S=back}
+}
+function admList(){
+  if(!window.XLSX){toast('No se pudo cargar la librería de Excel. Revisa tu conexión.');return}
+  var aoa=[['Usuario','Nombre','Cédula','Correo','Asignaturas','Secciones','Estudiantes','Última actualización']];
+  (ui.adm.rows||[]).forEach(function(r){
+    aoa.push([r.usuario,r.nombre,r.st?r.st.perfil.cedula:'',r.st?r.st.perfil.correo:'',r.st?stNames(r.st).join('; '):'',r.secs,r.ests,r.fecha?fmtDate(r.fecha):'']);
+  });
+  var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[22,28,16,28,50,10,12,20].map(function(w){return {wch:w}});
+  XLSX.utils.book_append_sheet(wb,ws,'Docentes');
+  saveFile('Lista-docentes-Zazarabicoa.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
+}
+async function admDelete(){
+  var uid=ui.adm.open;if(!uid||uid===session.uid)return;
+  try{
+    await fdb.collection('docentes').doc(uid).delete();
+    ui.adm.rows=ui.adm.rows.filter(function(x){return x.uid!==uid});ui.adm.open=null;render();
+    toast('Datos eliminados. Para quitar también el acceso de ese usuario, elimínalo en Firebase: Authentication > Usuarios.');
+  }catch(e){toast(authMsg(e))}
+}
+/* ---------- boot ---------- */
+ui.authMode='login';
+render();
+initCloud();
+})();
+</script>
+
+</body></html>

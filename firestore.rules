@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Administradores: reemplaza el texto entre comillas por el UID del administrador.
+    // El UID se ve en Firebase > Authentication > Usuarios (columna "UID de usuario").
+    // Para varios administradores, sepáralos con coma: ['UID1', 'UID2']
+    function esAdmin() {
+      return request.auth != null
+        && request.auth.uid in ['PEGA_AQUI_EL_UID_DEL_ADMINISTRADOR'];
+    }
+
+    match /docentes/{uid} {
+      // Cada docente lee y borra lo suyo. El administrador puede leer y borrar todo.
+      allow read, delete: if request.auth != null && (request.auth.uid == uid || esAdmin());
+
+      // Solo el propio docente crea o cambia sus datos. El administrador no puede cambiarlos.
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['usuario', 'datos', 'version', 'actualizado'])
+        && request.resource.data.datos is string
+        && request.resource.data.datos.size() < 950000;
+    }
+  }
+}

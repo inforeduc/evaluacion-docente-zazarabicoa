@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generar clave de acceso</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:0 auto;padding:24px 16px;background:#f3f6ef;color:#15241a}
+input,button,textarea{font:inherit;padding:8px 10px;border:1px solid #b9c7b4;border-radius:6px;width:100%;box-sizing:border-box}
+button{background:#17703e;color:#fff;border-color:#17703e;cursor:pointer;margin-top:10px;font-weight:600}
+textarea{margin-top:10px;min-height:7rem;font-family:ui-monospace,monospace;font-size:.85rem}
+h1{font-size:1.5rem}ol{padding-left:1.2rem}</style></head><body>
+<h1>Generar la clave de acceso de la página</h1>
+<ol><li>Escribe la clave que quieres usar.</li><li>Pulsa el botón y copia la línea que aparece.</li>
+<li>Abre <b>index.html</b> con el Bloc de notas, busca la línea que empieza con <b>var ACCESS=</b> y reemplázala completa por la línea copiada. Guarda el archivo y súbelo de nuevo a GitHub.</li></ol>
+<form id="f"><input type="text" id="c" placeholder="Nueva clave de acceso" autocomplete="off" required><button type="submit">Generar línea</button></form>
+<textarea id="o" readonly placeholder="Aquí aparece la línea para pegar en index.html"></textarea>
+<script>
+function b64(b){var a=new Uint8Array(b),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s)}
+document.getElementById('f').addEventListener('submit',async function(e){e.preventDefault();
+ var code=document.getElementById('c').value,salt=crypto.getRandomValues(new Uint8Array(16)),iter=200000;
+ var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(code),'PBKDF2',false,['deriveBits']);
+ var bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:iter,hash:'SHA-256'},km,256);
+ var o=document.getElementById('o');o.value='var ACCESS={salt:"'+b64(salt)+'",iter:'+iter+',hash:"'+b64(bits)+'"};';o.select();});
+</script></body></html>
