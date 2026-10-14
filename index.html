@@ -68,7 +68,7 @@ main{padding-block:16px 48px}
 .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
 .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f span{font-size:.85rem;font-weight:600;color:var(--muted)}
-input[type=text],input[type=date],input[type=email],input[type=tel],select,textarea,input:not([type]){
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=email],input[type=tel],select,textarea,input:not([type]){
   background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
 input[type=password]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
 textarea{resize:vertical}
@@ -230,9 +230,9 @@ function slug(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').re
 
 /* ---------- state ---------- */
 function emptyState(){return {perfil:{apellidos:'',nombres:'',cedula:'',titulo:'',cargo:'Docente de aula',telefono:'',correo:'',institucion:'',anioEscolar:'2026-2027'},
-  anios:[],asignaturas:[],custom:[],planes:{},secOrder:[],secs:{}}}
+  anios:[],asignaturas:[],custom:[],planes:{},secOrder:[],secs:{},formatos:{}}}
 var S=emptyState();
-function freshUi(){return {tab:'perfil',planAsig:null,planLapso:1,nSec:null,nAsig:null,nLapso:1,manage:false,impOpen:false,imp:null,impResult:null,authMode:'login',authMsg:null,adm:{rows:null,loading:false,err:'',q:'',open:null}}}
+function freshUi(){return {tab:'perfil',fmtab:'pend',fmSec:null,planAsig:null,planLapso:1,nSec:null,nAsig:null,nLapso:1,manage:false,impOpen:false,imp:null,impResult:null,authMode:'login',authMsg:null,adm:{rows:null,loading:false,err:'',q:'',open:null}}}
 var ui=freshUi();
 
 function getPlan(asig,l){return (S.planes[asig]&&S.planes[asig][l])||[]}
@@ -326,7 +326,7 @@ function normalize(c){
   var s=emptyState();
   s.perfil=Object.assign(s.perfil,c.perfil||{});delete s.perfil.codigo;delete s.perfil.municipio;
   s.anios=c.anios||[];s.asignaturas=c.asignaturas||[];s.custom=c.custom||[];s.planes=c.planes||{};
-  s.secs=c.secs||{};s.secOrder=(c.secOrder||[]).filter(function(id){return s.secs[id]});
+  s.formatos=(c.formatos&&typeof c.formatos==='object')?c.formatos:{};s.secs=c.secs||{};s.secOrder=(c.secOrder||[]).filter(function(id){return s.secs[id]});
   s.secOrder.forEach(function(id){var x=s.secs[id];x.estudiantes=x.estudiantes||[];x.notas=x.notas||{}});
   return s;
 }
@@ -536,7 +536,7 @@ function empty(title,text,buttons){
 }
 function nextBtn(tab,label){return '<div class="row end" style="margin-top:16px"><button class="btn" data-go="'+tab+'">'+esc(label)+'</button></div>'}
 
-var TABS=[['perfil','Datos personales'],['asig','Años y asignaturas'],['plan','Plan de evaluación'],['notas','Notas'],['export','Exportar']];
+var TABS=[['perfil','Datos personales'],['asig','Años y asignaturas'],['plan','Plan de evaluación'],['notas','Notas'],['formatos','Formatos'],['export','Exportar']];
 function renderTabs(){
   $('#tabs').innerHTML=(isAdmin?TABS.concat([['admin','Administración']]):TABS).map(function(t,i){
     return '<button class="tab" data-go="'+t[0]+'"'+(ui.tab===t[0]?' aria-current="page"':'')+'><b>'+(i+1)+'</b>'+t[1]+'</button>';
@@ -745,7 +745,7 @@ function exportView(){
     '<section class="card"><h2>Tus datos</h2><p class="lead">Se guardan automáticamente en tu usuario. Aquí puedes empezar de cero cuando termines con los datos de ejemplo o al cambiar de año escolar.</p>'+
     '<div class="row"><button class="btn ghost" data-act="ejemplo">Cargar datos de ejemplo</button><button class="btn danger" data-act="clear" data-label="Borrar todos mis datos">Borrar todos mis datos</button></div></section>';
 }
-var views={perfil:perfilView,asig:asigView,plan:planView,notas:notasView,export:exportView,admin:adminView};
+var views={perfil:perfilView,asig:asigView,plan:planView,notas:notasView,formatos:formatosView,export:exportView,admin:adminView};
 
 function render(){
   if(!session){$('#tabs').innerHTML='';$('#view').innerHTML=authHTML();return}
@@ -858,12 +858,14 @@ function act(a,t){
     $('#restoreFile').click();
   }else if(a==='xlsx'){exportXlsx()}
   else if(a==='pdf'){exportPdf()}
+  else if(a.indexOf('fm')===0){fmAct(a,t)}
 }
 function hasData(){
   var p=S.perfil;return !!(p.apellidos||p.nombres||S.anios.length||S.asignaturas.length||S.secOrder.length);
 }
 view.addEventListener('input',function(ev){
   var t=ev.target,d=t.dataset;
+  if((d.fm||d.fmrow||d.fmitem||d.fmsec)&&fmInputEv(t,d))return;
   if(d.imp){impState()[d.imp]=t.value;return}
   if(d.adm){ui.adm.q=t.value;var ab=$('#admBody');if(ab)ab.innerHTML=admRowsHTML();return}
   if(d.p){S.perfil[d.p]=t.value;touch('cfg');return}
@@ -892,6 +894,7 @@ view.addEventListener('change',function(ev){
     var i2=S.asignaturas.indexOf(d.asig);if(t.checked&&i2<0)S.asignaturas.push(d.asig);if(!t.checked&&i2>-1)S.asignaturas.splice(i2,1);
     touch('cfg');asigSummary();return;
   }
+  if(d.fm&&/\.asigId$/.test(d.fm)){fmGet(d.fm.split('.')[0]).asigId=t.value;touch();render();return}
   if(t.id==='impFile'){if(t.files&&t.files[0])importFile(t.files[0]);t.value='';return}
   if(t.id==='restoreFile'){if(t.files&&t.files[0])restoreFrom(t.files[0]);t.value='';return}
   if(t.id==='planAsig'){ui.planAsig=t.value;render();return}
@@ -1106,6 +1109,220 @@ function restoreFrom(file){
   r.onerror=function(){expMsg('No se pudo leer el archivo.','bad')};
   r.readAsText(file);
 }
+/* ---------- formatos (actas imprimibles) ---------- */
+var FM_TITLES={pend:'Acta de Evaluación de Materia Pendiente',rev:'Acta de Revisión de Final de Año',acu:'Acta de Acuerdos de Evaluación'};
+var FM_ACUERDOS=[
+ 'Se dio a conocer a los estudiantes el plan de evaluación del lapso: actividades, fechas y porcentaje de cada una.',
+ 'La escala de calificación es de 01 a 20 puntos. La nota mínima aprobatoria es de 10 puntos.',
+ 'Los trabajos y actividades se entregarán en la fecha acordada. Los estudiantes que no puedan entregar por una causa justificada lo informarán con anticipación al docente.',
+ 'La inasistencia a una evaluación debe justificarse ante el docente para acordar una nueva fecha.',
+ 'La copia o el plagio en una evaluación o trabajo será sancionado según lo establecido en la normativa de la institución.',
+ 'Los resultados de cada evaluación se darán a conocer a los estudiantes, quienes podrán solicitar su revisión al docente.',
+ 'Los acuerdos aquí escritos se mantendrán durante el lapso, salvo que el docente y los estudiantes decidan modificarlos de común acuerdo.'];
+function fmDefault(k){
+  var b={fecha:'',hora:'',lugar:'',asigId:'',asigTxt:'',docente:'',filas:12,rows:[]};
+  if(k==='acu'){b.filas=30;b.grupo='';b.lapso='1';b.incluirPlan=true;b.otros=3;b.items=FM_ACUERDOS.map(function(t){return {id:uid(),t:t}})}
+  return b;
+}
+function fmGet(k){
+  if(!S.formatos||typeof S.formatos!=='object')S.formatos={};
+  if(!S.formatos[k])S.formatos[k]=fmDefault(k);
+  var f=S.formatos[k];f.rows=f.rows||[];if(k==='acu')f.items=f.items||[];
+  return f;
+}
+function fmMem(){
+  if(!S.formatos||typeof S.formatos!=='object')S.formatos={};
+  if(!S.formatos.mem)S.formatos.mem={l1:'República Bolivariana de Venezuela',l2:'Ministerio del Poder Popular para la Educación'};
+  return S.formatos.mem;
+}
+function fmAsigName(f){var a=f.asigId&&asigById(f.asigId);return a?a.n:(f.asigTxt||'')}
+function fmDocente(f){return (f.docente||'').trim()||fullName()}
+function fmFecha(v){if(!v)return '';var d=new Date(v+'T00:00:00');return isNaN(d)?v:d.toLocaleDateString('es-VE',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function fmHora(v){
+  var m=/^(\d{1,2}):(\d{2})/.exec(v||'');if(!m)return v||'';
+  var h=+m[1],ap=h>=12?'p. m.':'a. m.';h=h%12||12;return h+':'+m[2]+' '+ap;
+}
+function splitName(full){
+  var w=String(full||'').trim().split(/\s+/).filter(Boolean),n=w.length,k;
+  if(n<=1)return {ape:w.join(' '),nom:''};
+  if(n===2)k=1;else if(n===3)k=2;else k=Math.ceil(n/2);
+  return {ape:w.slice(0,k).join(' '),nom:w.slice(k).join(' ')};
+}
+function fmSecOpts(){
+  if(!ui.fmSec||!S.secs[ui.fmSec])ui.fmSec=S.secOrder[0]||null;
+  return S.secOrder.map(function(id){var s=S.secs[id];return '<option value="'+id+'"'+(id===ui.fmSec?' selected':'')+'>'+anioL(s.anio)+' · Sección '+esc(s.seccion)+' ('+s.estudiantes.length+')</option>'}).join('');
+}
+function fmInput(k,field,label,type,val,extra){
+  return '<label class="f"><span>'+label+'</span><input type="'+type+'" data-fm="'+k+'.'+field+'" value="'+esc(val)+'"'+(extra||'')+'></label>';
+}
+function formatosView(){
+  var k=ui.fmtab||'pend',f=fmGet(k),mem=fmMem();
+  var seg='<div class="seg" role="group" aria-label="Formato">'+['pend','rev','acu'].map(function(x){
+    return '<button data-act="fmtab" data-k="'+x+'" aria-pressed="'+(x===k)+'">'+({pend:'Materia pendiente',rev:'Revisión final de año',acu:'Acuerdos de evaluación'})[x]+'</button>';
+  }).join('')+'</div>';
+  var asigs=selAsigs(),hasSecs=S.secOrder.length>0;
+  var asigSel='<label class="f"><span>Asignatura</span><select data-fm="'+k+'.asigId"><option value="">Otra (escribir el nombre)</option>'+asigs.map(function(a){return '<option value="'+a.id+'"'+(a.id===f.asigId?' selected':'')+'>'+esc(a.n)+'</option>'}).join('')+'</select></label>'+
+    (f.asigId&&asigById(f.asigId)?'':fmInput(k,'asigTxt','Nombre de la asignatura','text',f.asigTxt,' list="fmAsigList"')+'<datalist id="fmAsigList">'+ASIGS.map(function(a){return '<option value="'+esc(a.n)+'">'}).join('')+'</datalist>');
+  var out='<section class="card"><h2>Formatos</h2><p class="lead">Prepara actas listas para imprimir, con el membrete y el logo de la institución. Completa lo que sepas y deja en blanco lo que se escribirá a mano.</p>'+seg+'</section>';
+  var intro={pend:'Para estudiantes que tienen una materia pendiente de años anteriores.',rev:'Para los estudiantes aplazados en la sumatoria de los 3 lapsos (definitiva anual menor a 10 puntos).',acu:'Acuerdos que el docente establece con los estudiantes de cada sección.'}[k];
+  out+='<section class="card"><h2>'+FM_TITLES[k]+'</h2><p class="lead">'+intro+'</p><div class="grid">'+
+    fmInput(k,'fecha',k==='acu'?'Fecha':'Fecha de la evaluación','date',f.fecha)+fmInput(k,'hora','Hora','time',f.hora)+fmInput(k,'lugar',k==='acu'?'Lugar':'Lugar de la evaluación','text',f.lugar,' placeholder="Ej.: Aula 3"')+
+    asigSel+
+    fmInput(k,'docente',k==='acu'?'Docente':'Docente que aplica','text',f.docente,' placeholder="'+esc(fullName()||'Nombre del docente')+'"')+
+    (k==='acu'?fmInput(k,'grupo','Año y sección','text',f.grupo,' placeholder="Ej.: 3er año · Sección A"')+'<label class="f"><span>Lapso</span><select data-fm="acu.lapso">'+LAPSOS.map(function(l){return '<option value="'+l+'"'+(String(l)===String(f.lapso)?' selected':'')+'>Lapso '+l+'</option>'}).join('')+'</select></label>':'')+
+    '</div></section>';
+  /* students */
+  var load='<div class="row" style="margin-bottom:12px"><label class="f" style="min-width:14rem"><span>Sección para cargar estudiantes</span><select data-fmsec="1"'+(hasSecs?'':' disabled')+'>'+(hasSecs?fmSecOpts():'<option>No hay secciones creadas</option>')+'</select></label>'+
+    '<button class="btn ghost" data-act="fmload" data-k="'+k+'"'+(hasSecs?'':' disabled')+' style="align-self:flex-end">Cargar estudiantes de la sección</button>'+
+    (k==='rev'?'<button class="btn ghost" data-act="fmloadap" data-k="rev"'+(hasSecs?'':' disabled')+' style="align-self:flex-end">Cargar solo los aplazados</button>':'')+'</div>';
+  var cols=k==='acu'?['Cédula','Apellidos','Nombres']:['Cédula','Apellidos','Nombres','Año','Sección'];
+  var rows=f.rows.map(function(r){
+    function c(fl,ph){return '<td><input type="text" data-fmrow="'+k+'|'+r.id+'|'+fl+'" value="'+esc(r[fl])+'"'+(ph?' placeholder="'+ph+'"':'')+'></td>'}
+    return '<tr>'+c('ced')+c('ape')+c('nom')+(k==='acu'?'':c('anio')+c('sec'))+'<td><button class="btn danger sm" data-act="fmdelrow" data-k="'+k+'" data-id="'+r.id+'" aria-label="Quitar fila">Quitar</button></td></tr>';
+  }).join('');
+  out+='<section class="card"><h2>'+(k==='acu'?'Lista de estudiantes para firmar':'Estudiantes')+'</h2><p class="lead">'+(k==='acu'?'Opcional. Se imprime una tabla con espacio para la firma de cada estudiante.':'Carga una sección o agrega filas. Las filas que falten hasta completar el número de filas del acta quedan en blanco para llenarlas a mano. La nota obtenida siempre se deja en blanco.')+'</p>'+load+
+    (f.rows.length?'<div class="tbl-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+c+'</th>'}).join('')+'<th><span class="sr">Quitar</span></th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="note">Todavía no hay estudiantes en la lista. El acta se imprimirá con filas en blanco.</p>')+
+    '<div class="row" style="margin-top:12px"><button class="btn ghost" data-act="fmaddrow" data-k="'+k+'">Agregar fila</button>'+
+    '<label class="f" style="flex-direction:row;align-items:center;gap:8px"><span>Filas en el acta</span><input type="number" min="1" max="60" style="width:5rem" data-fm="'+k+'.filas" value="'+esc(f.filas)+'"></label></div></section>';
+  if(k==='acu'){
+    out+='<section class="card"><h2>Acuerdos</h2><p class="lead">Estos acuerdos son una propuesta. Cámbialos, bórralos o agrega los tuyos.</p>'+
+      f.items.map(function(it,i){return '<div class="row" style="align-items:flex-start;margin-bottom:8px"><b style="min-width:1.5rem;padding-top:8px">'+(i+1)+'.</b><textarea rows="2" style="flex:1;min-width:14rem" data-fmitem="'+it.id+'">'+esc(it.t)+'</textarea><button class="btn danger sm" data-act="fmdelit" data-id="'+it.id+'" aria-label="Quitar acuerdo '+(i+1)+'">Quitar</button></div>'}).join('')+
+      '<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="fmaddit">Agregar acuerdo</button>'+
+      '<label class="f" style="flex-direction:row;align-items:center;gap:8px"><span>Líneas en blanco para otros acuerdos</span><input type="number" min="0" max="15" style="width:5rem" data-fm="acu.otros" value="'+esc(f.otros)+'"></label></div>'+
+      '<label class="opt" style="margin-top:12px"><input type="checkbox" data-fm="acu.incluirPlan"'+(f.incluirPlan?' checked':'')+'><span>Incluir el plan de evaluación del lapso<small>Se toma de la pestaña Plan de evaluación, según la asignatura y el lapso elegidos</small></span></label></section>';
+  }
+  out+='<section class="card"><h2>Membrete</h2><p class="lead">Aparece arriba en todas las actas, junto al logo y el nombre de la institución (que se toma de Datos personales).</p><div class="grid">'+
+    '<label class="f"><span>Primera línea</span><input type="text" data-fm="mem.l1" value="'+esc(mem.l1)+'"></label><label class="f"><span>Segunda línea</span><input type="text" data-fm="mem.l2" value="'+esc(mem.l2)+'"></label></div></section>';
+  out+='<section class="card"><div class="row"><button class="btn" data-act="fmpdf" data-k="'+k+'">Descargar acta (PDF)</button><button class="btn danger" data-act="fmclear" data-k="'+k+'" data-label="Limpiar este formato">Limpiar este formato</button></div><p class="note" id="expMsg" style="margin-top:12px" role="status"></p></section>';
+  return out;
+}
+function fmInputEv(t,d){
+  var v=t.type==='checkbox'?t.checked:t.value,p;
+  if(d.fmsec){ui.fmSec=t.value;return true}
+  if(d.fm){
+    p=d.fm.split('.');var o=p[0]==='mem'?fmMem():fmGet(p[0]);
+    if(p[1]==='filas'||p[1]==='otros'){var n=parseInt(v,10);o[p[1]]=isNaN(n)?(p[1]==='filas'?12:3):Math.max(p[1]==='filas'?1:0,Math.min(p[1]==='filas'?60:15,n))}
+    else o[p[1]]=v;
+    touch();return true;
+  }
+  if(d.fmrow){
+    p=d.fmrow.split('|');var r=fmGet(p[0]).rows.filter(function(x){return x.id===p[1]})[0];if(r){r[p[2]]=v;touch()}return true;
+  }
+  if(d.fmitem){var it=fmGet('acu').items.filter(function(x){return x.id===d.fmitem})[0];if(it){it.t=v;touch()}return true}
+  return false;
+}
+function fmAct(a,t){
+  var k=t.dataset.k||ui.fmtab||'pend',f=fmGet(k),sec;
+  function stuRow(sec,e){var n=splitName(e.nombre);return {id:uid(),ced:e.cedula||'',ape:n.ape,nom:n.nom,anio:anioL(sec.anio),sec:sec.seccion}}
+  function addRows(list,sec){
+    var have={};f.rows.forEach(function(r){have[normKey(r.ape+' '+r.nom)]=1});var n=0;
+    list.forEach(function(e){var r=stuRow(sec,e);if(!have[normKey(r.ape+' '+r.nom)]){f.rows.push(r);n++}});
+    if(k==='acu'&&!f.grupo)f.grupo=anioL(sec.anio)+' · Sección '+sec.seccion;
+    touch();render();toast(n?('Se cargaron '+n+' estudiantes.'):'No había estudiantes nuevos para cargar.');
+  }
+  if(a==='fmtab'){ui.fmtab=t.dataset.k;render();window.scrollTo(0,0)}
+  else if(a==='fmaddrow'){
+    var sec0=S.secs[ui.fmSec];f.rows.push({id:uid(),ced:'',ape:'',nom:'',anio:'',sec:''});touch();render();
+    var ins=$$('[data-fmrow^="'+k+'|'+f.rows[f.rows.length-1].id+'|"]');if(ins[0])ins[0].focus();
+  }
+  else if(a==='fmdelrow'){f.rows=f.rows.filter(function(r){return r.id!==t.dataset.id});touch();render()}
+  else if(a==='fmload'){sec=S.secs[ui.fmSec];if(!sec)return;addRows(sec.estudiantes,sec)}
+  else if(a==='fmloadap'){
+    sec=S.secs[ui.fmSec];if(!sec)return;
+    if(!f.asigId){toast('Primero elige la asignatura de la lista.');return}
+    var ap=sec.estudiantes.filter(function(e){var d=anualDef(sec,e,f.asigId).def;return d!=null&&d<10});
+    if(!ap.length){toast('Ningún estudiante de esta sección está aplazado en esa asignatura con las notas cargadas.');return}
+    addRows(ap,sec);
+  }
+  else if(a==='fmaddit'){f.items.push({id:uid(),t:''});touch();render();var tas=$$('[data-fmitem]');if(tas.length)tas[tas.length-1].focus()}
+  else if(a==='fmdelit'){f.items=f.items.filter(function(x){return x.id!==t.dataset.id});touch();render()}
+  else if(a==='fmclear'){if(!confirmed(t))return;delete S.formatos[k];touch();render();toast('Formato limpiado.')}
+  else if(a==='fmpdf'){fmPdf(k)}
+}
+function fmPdf(k){
+  if(!window.jspdf||!window.jspdf.jsPDF){expMsg('No se pudo cargar la librería de PDF. Revisa tu conexión e inténtalo otra vez.','bad');return}
+  var f=fmGet(k),mem=fmMem(),doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+  if(typeof doc.autoTable!=='function'){expMsg('No se pudo cargar la librería de tablas del PDF.','bad');return}
+  var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=40,CW=W-2*M,y,GREEN=[23,112,62],DARK=[30,40,34],GRAY=[110,120,112];
+  function room(h){if(y>H-52-h){doc.addPage();y=M+10}}
+  function head(){
+    try{doc.addImage(LOGO,'JPEG',M,28,54,55)}catch(e){}
+    var cx=W/2+20;doc.setTextColor.apply(doc,DARK);
+    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.text(mem.l1||'',cx,42,{align:'center'});
+    doc.setFont('helvetica','normal');doc.text(mem.l2||'',cx,55,{align:'center'});
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor.apply(doc,GREEN);doc.text(S.perfil.institucion||'Institución Educativa Zazarabicoa',cx,71,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor.apply(doc,GRAY);doc.text('Año escolar '+(S.perfil.anioEscolar||''),cx,84,{align:'center'});
+    doc.setDrawColor.apply(doc,GREEN);doc.setLineWidth(1.6);doc.line(M,94,W-M,94);
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor.apply(doc,DARK);doc.text(FM_TITLES[k].toUpperCase(),W/2,122,{align:'center'});
+    y=144;
+    var sub={pend:'',rev:'Estudiantes aplazados en la sumatoria de los 3 lapsos',acu:'Acuerdos entre el docente y los estudiantes de la sección'}[k];
+    if(sub){doc.setFont('helvetica','italic');doc.setFontSize(9.5);doc.setTextColor.apply(doc,GRAY);doc.text(sub,W/2,136,{align:'center'});y=152}
+  }
+  function field(label,val,x,w,yy){
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor.apply(doc,DARK);doc.text(label,x,yy);
+    var lw=doc.getTextWidth(label)+6,avail=w-lw-2;
+    doc.setDrawColor(120,130,122);doc.setLineWidth(.5);doc.line(x+lw,yy+2.5,x+w,yy+2.5);
+    if(val){doc.setFont('helvetica','normal');doc.setFontSize(10.5);var s=doc.splitTextToSize(val,avail)[0];doc.text(s,x+lw+2,yy)}
+  }
+  function ruled(n,gap){doc.setDrawColor(120,130,122);doc.setLineWidth(.5);for(var i=0;i<n;i++){y+=gap;doc.line(M,y,W-M,y)}}
+  function label(t){doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor.apply(doc,DARK);doc.text(t,M,y)}
+  function firmas(list){
+    room(80);y+=36;var n=list.length,gap=24,w=n===1?230:(CW-gap*(n-1))/n,x0=n===1?(W-w)/2:M;
+    list.forEach(function(it,i){
+      var x=x0+i*(w+gap);doc.setDrawColor.apply(doc,DARK);doc.setLineWidth(.7);doc.line(x,y,x+w,y);
+      doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor.apply(doc,DARK);doc.text(it[0],x+w/2,y+13,{align:'center'});
+      if(it[1]){doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text(doc.splitTextToSize(it[1],w)[0],x+w/2,y+25,{align:'center'})}
+    });
+    y+=30;
+  }
+  var tb={theme:'grid',margin:{left:M,right:M,bottom:52,top:M},styles:{fontSize:9.5,cellPadding:4,minCellHeight:24,valign:'middle',lineColor:[120,130,122],lineWidth:.5,textColor:DARK},headStyles:{fillColor:GREEN,textColor:255,halign:'center',minCellHeight:20}};
+  head();
+  if(k==='acu'){
+    field('Fecha:',fmFecha(f.fecha),M,150,y);field('Hora:',fmHora(f.hora),M+170,130,y);field('Lugar:',f.lugar,M+320,CW-320,y);y+=26;
+    field('Año y sección:',f.grupo,M,300,y);field('Lapso:','Lapso '+f.lapso,M+320,CW-320,y);y+=26;
+    field('Asignatura:',fmAsigName(f),M,CW,y);y+=26;
+    field('Docente:',fmDocente(f),M,CW,y);y+=22;
+    var plan=(f.incluirPlan&&f.asigId)?getPlan(f.asigId,+f.lapso):[];
+    if(plan.length){
+      y+=8;label('Plan de evaluación del lapso '+f.lapso);y+=6;
+      doc.autoTable(Object.assign({},tb,{startY:y,head:[['Actividad','Tipo','Fecha','Peso (%)']],body:plan.map(function(a){return [a.nombre||'(sin nombre)',a.tipo,fmFecha(a.fecha),String(+a.peso||0)]}).concat([[{content:'Total',colSpan:3,styles:{fontStyle:'bold',halign:'right'}},{content:String(planTotal(plan)),styles:{fontStyle:'bold',halign:'center'}}]]),styles:Object.assign({},tb.styles,{minCellHeight:18,cellPadding:3}),columnStyles:{2:{halign:'center',cellWidth:70},3:{halign:'center',cellWidth:60}}}));
+      y=doc.lastAutoTable.finalY+8;
+    }
+    y+=10;room(40);label('Acuerdos establecidos');y+=8;
+    doc.setFont('helvetica','normal');doc.setFontSize(10.5);
+    f.items.filter(function(it){return (it.t||'').trim()}).forEach(function(it,i){
+      var lines=doc.splitTextToSize((i+1)+'.  '+it.t.trim(),CW-14);room(lines.length*13+4);
+      doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor.apply(doc,DARK);doc.text(lines,M+8,y+4);y+=lines.length*13+5;
+    });
+    if(+f.otros>0){room(30+(+f.otros)*22);y+=6;label('Otros acuerdos:');ruled(+f.otros,22);y+=4}
+    y+=14;room(80);label('Firmas de los estudiantes');y+=6;
+    var n=Math.max(+f.filas||1,f.rows.length),body=[];
+    for(var i=0;i<n;i++){var r=f.rows[i]||{};body.push([i+1,r.ced||'',r.ape||'',r.nom||'',''])}
+    doc.autoTable(Object.assign({},tb,{startY:y,head:[['N°','Cédula','Apellidos','Nombres','Firma']],body:body,columnStyles:{0:{cellWidth:28,halign:'center'},1:{cellWidth:78},2:{cellWidth:125},3:{cellWidth:115},4:{cellWidth:'auto'}}}));
+    y=doc.lastAutoTable.finalY;
+    firmas([['Docente',fmDocente(f)],['Delegado(a) de la sección','']]);
+  }else{
+    field('Fecha de la evaluación:',fmFecha(f.fecha),M,300,y);field('Hora:',fmHora(f.hora),M+320,CW-320,y);y+=26;
+    field('Lugar de la evaluación:',f.lugar,M,CW,y);y+=26;
+    field('Asignatura:',fmAsigName(f),M,CW,y);y+=26;
+    field('Docente que aplica:',fmDocente(f),M,CW,y);y+=18;
+    var n2=Math.max(+f.filas||1,f.rows.length),body2=[];
+    for(var j=0;j<n2;j++){var r2=f.rows[j]||{};body2.push([j+1,r2.ced||'',r2.ape||'',r2.nom||'',r2.anio||'',r2.sec||'',''])}
+    doc.autoTable(Object.assign({},tb,{startY:y,head:[['N°','Cédula','Apellidos','Nombres','Año','Sección','Nota obtenida']],body:body2,columnStyles:{0:{cellWidth:28,halign:'center'},1:{cellWidth:74},2:{cellWidth:122},3:{cellWidth:112},4:{cellWidth:50,halign:'center',fontSize:8.5},5:{cellWidth:56,halign:'center'},6:{cellWidth:73,halign:'center'}}}));
+    y=doc.lastAutoTable.finalY+22;
+    room(40+5*22);label('Observaciones:');ruled(5,22);y+=4;
+    firmas([['Docente que aplica',fmDocente(f)]]);
+  }
+  var pages=doc.internal.getNumberOfPages();
+  for(var p=1;p<=pages;p++){
+    doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor.apply(doc,GRAY);
+    doc.text((S.perfil.institucion||'Zazarabicoa')+' · '+FM_TITLES[k],M,H-24);
+    doc.text('Página '+p+' de '+pages,W-M,H-24,{align:'right'});
+  }
+  var nm={pend:'Acta-Materia-Pendiente',rev:'Acta-Revision-Final-de-Ano',acu:'Acta-Acuerdos-de-Evaluacion'}[k],as=slug(fmAsigName(f));
+  saveFile(nm+(as?'-'+as:'')+(f.fecha?'-'+f.fecha:'')+'.pdf',doc.output('arraybuffer'));
+}
+
 /* ---------- import a whole section from Excel ---------- */
 function impState(){
   var list=selAsigs();
