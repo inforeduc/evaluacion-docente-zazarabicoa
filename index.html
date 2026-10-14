@@ -867,7 +867,7 @@ function hasData(){
 view.addEventListener('input',function(ev){
   var t=ev.target,d=t.dataset;
   if((d.fm||d.fmrow||d.fmitem||d.fmsec||d.fmasig||d.tipo||d.plres)&&fmInputEv(t,d))return;
-  if(d.admpl){if(d.admpl==='key'){ui.adm.plKey=t.value;render()}else ui.adm.plRes=t.checked;return}
+  if(d.admpl){if(d.admpl==='key'){ui.adm.plKey=t.value;render()}else{ui.adm.plOpt=ui.adm.plOpt||{sec:true,asig:false};ui.adm.plOpt[d.admpl]=t.checked}return}
   if(d.imp){impState()[d.imp]=t.value;return}
   if(d.adm){ui.adm.q=t.value;var ab=$('#admBody');if(ab)ab.innerHTML=admRowsHTML();return}
   if(d.p){S.perfil[d.p]=t.value;touch('cfg');return}
@@ -1209,7 +1209,7 @@ function fmInputEv(t,d){
   var v=t.type==='checkbox'?t.checked:t.value,p;
   if(d.fmsec){ui.fmSec=t.value;if(ui.fmtab==='plan')render();return true}
   if(d.fmasig){ui.fmAsig=t.value;render();return true}
-  if(d.plres){ui.plResumen=t.checked;return true}
+  if(d.plres){ui.plOpt=ui.plOpt||{sec:true,asig:false};ui.plOpt[d.plres]=t.checked;return true}
   if(d.tipo){var q=d.tipo.split('|'),sc=S.secs[ui.fmSec];if(sc){sc.tipos=sc.tipos||{};if(!t.value||t.value==='n')delete sc.tipos[d.tipo];else sc.tipos[d.tipo]=t.value;touch()}return true}
   if(d.fm){
     p=d.fm.split('.');var o=p[0]==='mem'?fmMem():fmGet(p[0]);
@@ -1377,11 +1377,11 @@ function planillaBuild(sources,key){
             tipo:LAPSOS.map(function(l){return (sec.tipos&&sec.tipos[e.id+'|'+a.id+'|'+l])||'n'}),
             def:an.def,prov:an.prov||ls.some(function(d){return d.prov})};
         }).sort(function(p,q){return p.nombre.localeCompare(q.nombre,'es')});
-        out.asigs.push({name:a.n,s:a.s,docente:fullName()||src.docente||'',rows:rows});
+        var oi=ASIGS.map(function(x){return x.id}).indexOf(a.id);out.asigs.push({name:a.n,s:a.s,ord:oi<0?100:oi,docente:fullName()||src.docente||'',rows:rows});
       });
     });
   });
-  out.asigs.sort(function(p,q){return p.name.localeCompare(q.name,'es')});
+  out.asigs.sort(function(p,q){return (p.ord-q.ord)||String(p.docente).localeCompare(String(q.docente),'es')});
   out.list=Object.keys(stu).map(function(k){return stu[k]}).sort(function(p,q){return p.nombre.localeCompare(q.nombre,'es')});
   return out;
 }
@@ -1411,85 +1411,125 @@ function pdfField(doc,label,val,x,w,y){
   doc.setDrawColor(120,130,122);doc.setLineWidth(.5);doc.line(x+lw,y+2.5,x+w,y+2.5);
   if(val){doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.text(doc.splitTextToSize(val,w-lw-2)[0],x+lw+2,y)}
 }
-function planillaPdf(data,incResumen){
+function plOpts(o){return {sec:!o||o.sec!==false,asig:!!(o&&o.asig)}}
+function plHeadName(a,dups){var n=String(a.name).toUpperCase();return dups[a.name]>1&&a.docente?n+'\n'+a.docente:n}
+function plDups(data){var d={};data.asigs.forEach(function(a){d[a.name]=(d[a.name]||0)+1});return d}
+function plMark(t){return t==='112'?'*':(t==='rec'?'R':'')}
+function planillaPdf(data,opt){
   if(!window.jspdf||!window.jspdf.jsPDF){expMsg('No se pudo cargar la librería de PDF. Revisa tu conexión e inténtalo otra vez.','bad');return}
-  var doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+  var n=data.asigs.length,doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:n>14?'a3':'legal'});
   if(typeof doc.autoTable!=='function'){expMsg('No se pudo cargar la librería de tablas del PDF.','bad');return}
-  var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=40,CW=W-2*M,GREEN=[23,112,62],DARK=[30,40,34],GRAY=[110,120,112],y,first=true;
-  var grp=secLabel(data.anio,data.seccion);
-  var tb={theme:'grid',margin:{left:M,right:M,bottom:44,top:M},styles:{fontSize:9,cellPadding:3,minCellHeight:17,valign:'middle',lineColor:[120,130,122],lineWidth:.5,textColor:DARK},headStyles:{fillColor:GREEN,textColor:255,halign:'center'}};
-  function red(d){if(d.section==='body'&&d.column.index>=2){var n=parseFloat(String(d.cell.raw));if(!isNaN(n)&&n<10)d.cell.styles.textColor=[190,30,30]}}
-  function room(h){if(y>H-48-h){doc.addPage();y=M}}
-  if(incResumen){
-    first=false;y=pdfHead(doc,'PLANILLA DE DISCUSIÓN DE NOTAS FINALES','Resumen general de la sección · Definitiva anual por asignatura');
-    pdfField(doc,'Año y sección:',grp,M,300,y+8);pdfField(doc,'Fecha del consejo de docentes:','',M+330,CW-330,y+8);y+=22;
-    var n=data.asigs.length,aw=Math.max(34,Math.min(60,(CW-22-170-48)/Math.max(n,1))),cs={0:{cellWidth:22,halign:'center'},1:{cellWidth:170}};
-    data.asigs.forEach(function(a,i){cs[i+2]={cellWidth:aw,halign:'center'}});cs[n+2]={cellWidth:48,halign:'center'};
+  var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=28,CW=W-2*M,GREEN=[23,112,62],DARK=[30,40,34],GRAY=[110,120,112],y,first=true;
+  var grp=secLabel(data.anio,data.seccion),dups=plDups(data);
+  function room(h){if(y>H-40-h){doc.addPage();y=M}}
+  function firmas(){
+    room(44);y+=20;var w=240,xs=[M+60,W-M-60-w];
+    [['Docente guía de la sección'],['Coordinación o Dirección']].forEach(function(it,i){
+      doc.setDrawColor.apply(doc,DARK);doc.setLineWidth(.7);doc.line(xs[i],y,xs[i]+w,y);
+      doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor.apply(doc,DARK);doc.text(it[0],xs[i]+w/2,y+13,{align:'center'});
+    });
+  }
+  if(opt.sec){
+    first=false;
+    /* membrete compacto */
+    var mem=fmMem(),cx=W/2+20;
+    try{doc.addImage(LOGO,'JPEG',M,14,42,43)}catch(e){}
+    doc.setTextColor.apply(doc,DARK);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(mem.l1||'',cx,25,{align:'center'});
+    doc.setFont('helvetica','normal');doc.text(mem.l2||'',cx,36,{align:'center'});
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor.apply(doc,GREEN);doc.text(S.perfil.institucion||'Institución Educativa Zazarabicoa',cx,49,{align:'center'});
+    doc.setDrawColor.apply(doc,GREEN);doc.setLineWidth(1.4);doc.line(M,62,W-M,62);
+    doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor.apply(doc,DARK);doc.text('PLANILLA DE DISCUSIÓN DE NOTAS FINALES DE LAPSO',W/2,79,{align:'center'});
+    pdfField(doc,'Año y sección:',grp,M,230,98);pdfField(doc,'Año escolar:',S.perfil.anioEscolar||'',M+250,150,98);
+    pdfField(doc,'Docente guía:','',M+420,260,98);pdfField(doc,'Fecha del consejo:','',M+700,CW-700,98);
+    var nameW=W>1100?190:150,avail=CW-18-56-nameW,unit=avail/Math.max(n,1),lw=+(unit*0.235).toFixed(2),fw=+(unit-3*lw).toFixed(2);
+    var cs={0:{cellWidth:18,halign:'center'},1:{cellWidth:56},2:{cellWidth:nameW,halign:'left'}};
+    var h1=[{content:'N°',rowSpan:2},{content:'Cédula',rowSpan:2},{content:'Apellidos y nombres',rowSpan:2}],h2=[];
+    data.asigs.forEach(function(a,k){
+      h1.push({content:plHeadName(a,dups),colSpan:4,styles:{fontSize:6.3}});
+      h2.push('I','II','III',{content:'FINAL',styles:{fontSize:4.8}});
+      for(var j=0;j<4;j++)cs[3+4*k+j]={cellWidth:j<3?lw:fw,halign:'center'};
+    });
     var look=data.asigs.map(function(a){var m={};a.rows.forEach(function(r){m[r.sk]=r});return m});
     var body=data.list.map(function(s,i){
-      var rp=0,r=[i+1,s.nombre];
-      look.forEach(function(m){var x=m[s.key];var d=x?x.def:null;r.push(d==null?'':pad2(d));if(d!=null&&d<10)rp++});
-      r.push(rp?String(rp):'');return r;
+      var r=[i+1,s.ced,s.nombre];
+      look.forEach(function(m){var x=m[s.key];for(var l=0;l<3;l++){var v=x?x.l[l]:null;r.push(v==null?'':pad2(v)+plMark(x.tipo[l]))}r.push('')});
+      return r;
     });
-    doc.autoTable(Object.assign({},tb,{startY:y,head:[['N°','Apellidos y nombres'].concat(data.asigs.map(function(a){return a.s||a.name}),['Aplazadas'])],body:body,columnStyles:cs,didParseCell:red,styles:Object.assign({},tb.styles,{fontSize:8.5,minCellHeight:15,cellPadding:2.5}),headStyles:Object.assign({},tb.headStyles,{fontSize:6.5,cellPadding:2})}));
-    y=doc.lastAutoTable.finalY+8;
-    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor.apply(doc,GRAY);doc.text('En rojo, las notas definitivas menores a 10 puntos. "Aplazadas" es la cantidad de asignaturas con definitiva menor a 10.',M,y+4);
+    var rh=Math.min(13,Math.max(9,(H-106-40-84-34)/Math.max(body.length,1)));
+    doc.autoTable({startY:106,margin:{left:M,right:M,top:M,bottom:40},theme:'grid',head:[h1,h2],body:body,columnStyles:cs,
+      styles:{fontSize:7,cellPadding:{top:1,bottom:1,left:1.2,right:1.2},minCellHeight:rh,valign:'middle',lineColor:[110,120,112],lineWidth:.4,textColor:DARK,overflow:'ellipsize'},
+      headStyles:{fillColor:GREEN,textColor:255,halign:'center',fontSize:6.8,minCellHeight:8,cellPadding:1,overflow:'linebreak'},
+      didParseCell:function(d){
+        if(d.section==='head')return;
+        var ci=d.column.index;if(ci<3)return;
+        if((ci-3)%4===3)d.cell.styles.fillColor=[232,238,233];
+        else{var v=parseFloat(String(d.cell.raw));if(!isNaN(v)&&v<10)d.cell.styles.textColor=[190,30,30]}
+      }});
+    y=doc.lastAutoTable.finalY+10;room(16);
+    doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor.apply(doc,GRAY);
+    doc.text('Cada casilla es la nota de fin de lapso. La columna FINAL (promedio) la completa a mano el docente guía.   * nota por Art. 112   R nota por recuperación de fin de lapso   En rojo: menor a 10.',M,y);
+    firmas();
   }
-  data.asigs.forEach(function(a){
-    if(!first)doc.addPage();first=false;
-    y=pdfHead(doc,'PLANILLA DE DISCUSIÓN DE NOTAS FINALES','Notas de los 3 lapsos y definitiva anual por asignatura');
-    pdfField(doc,'Año y sección:',grp,M,300,y+8);pdfField(doc,'Fecha del consejo de docentes:','',M+330,CW-330,y+8);y+=24;
-    pdfField(doc,'Asignatura:',a.name,M,300,y+8);pdfField(doc,'Docente:',a.docente,M+330,CW-330,y+8);y+=20;
-    var body=a.rows.map(function(r,i){return [i+1,r.ced,r.nombre,plCell(r.l[0],r.tipo[0]),plCell(r.l[1],r.tipo[1]),plCell(r.l[2],r.tipo[2]),r.def==null?'':pad2(r.def)+(r.prov?' *':''),plSit(r),'']});
-    function redP(d){if(d.section==='body'&&d.column.index>=3&&d.column.index<=6){var n=parseFloat(String(d.cell.raw));if(!isNaN(n)&&n<10)d.cell.styles.textColor=[190,30,30]}if(d.section==='body'&&d.column.index===7&&d.cell.raw==='Aplazado')d.cell.styles.textColor=[190,30,30]}
-    doc.autoTable(Object.assign({},tb,{startY:y,head:[['N°','Cédula','Apellidos y nombres','Lapso 1','Lapso 2','Lapso 3','Definitiva','Situación','Observaciones']],body:body,didParseCell:redP,
-      columnStyles:{0:{cellWidth:26,halign:'center'},1:{cellWidth:72},2:{cellWidth:190},3:{cellWidth:52,halign:'center'},4:{cellWidth:52,halign:'center'},5:{cellWidth:52,halign:'center'},6:{cellWidth:56,halign:'center',fontStyle:'bold'},7:{cellWidth:66,halign:'center'},8:{cellWidth:'auto'}}}));
-    y=doc.lastAutoTable.finalY+12;
-    var st=plStats(a.rows);room(110);
-    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor.apply(doc,DARK);
-    doc.text('Estudiantes: '+st.n+'     Aprobados: '+st.ap+'     Aplazados: '+st.rp+'     Sin definitiva: '+st.sin,M,y);y+=12;
-    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor.apply(doc,GRAY);
-    doc.text('Sin marca: evaluación normal.  (112): nota por Art. 112.  (R): nota por recuperación de fin de lapso.  *: definitiva provisional (faltan notas o el plan no suma 100 %).',M,y);y+=24;
-    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor.apply(doc,DARK);
-    var w=230,xs=[M+40,W-M-40-w];
-    [['Docente de la asignatura',a.docente],['Coordinación o Dirección','']].forEach(function(it,i){
-      doc.setDrawColor.apply(doc,DARK);doc.setLineWidth(.7);doc.line(xs[i],y+22,xs[i]+w,y+22);
-      doc.setFont('helvetica','bold');doc.text(it[0],xs[i]+w/2,y+35,{align:'center'});
-      if(it[1]){doc.setFont('helvetica','normal');doc.text(doc.splitTextToSize(it[1],w)[0],xs[i]+w/2,y+47,{align:'center'})}
+  if(opt.asig){
+    var tb={theme:'grid',margin:{left:M,right:M,bottom:44,top:M},styles:{fontSize:9,cellPadding:3,minCellHeight:17,valign:'middle',lineColor:[120,130,122],lineWidth:.5,textColor:DARK},headStyles:{fillColor:GREEN,textColor:255,halign:'center'}};
+    data.asigs.forEach(function(a){
+      if(!first)doc.addPage();first=false;
+      y=pdfHead(doc,'PLANILLA DE DISCUSIÓN DE NOTAS FINALES','Detalle por asignatura · notas de los 3 lapsos y definitiva anual');
+      pdfField(doc,'Año y sección:',grp,M,300,y+8);pdfField(doc,'Fecha del consejo de docentes:','',M+330,CW-330,y+8);y+=24;
+      pdfField(doc,'Asignatura:',a.name,M,300,y+8);pdfField(doc,'Docente:',a.docente,M+330,CW-330,y+8);y+=20;
+      var body=a.rows.map(function(r,i){return [i+1,r.ced,r.nombre,plCell(r.l[0],r.tipo[0]),plCell(r.l[1],r.tipo[1]),plCell(r.l[2],r.tipo[2]),r.def==null?'':pad2(r.def)+(r.prov?' *':''),plSit(r),'']});
+      doc.autoTable(Object.assign({},tb,{startY:y,head:[['N°','Cédula','Apellidos y nombres','Lapso 1','Lapso 2','Lapso 3','Definitiva','Situación','Observaciones']],body:body,
+        didParseCell:function(d){if(d.section==='body'&&d.column.index>=3&&d.column.index<=6){var v=parseFloat(String(d.cell.raw));if(!isNaN(v)&&v<10)d.cell.styles.textColor=[190,30,30]}if(d.section==='body'&&d.column.index===7&&d.cell.raw==='Aplazado')d.cell.styles.textColor=[190,30,30]},
+        columnStyles:{0:{cellWidth:26,halign:'center'},1:{cellWidth:72},2:{cellWidth:190},3:{cellWidth:52,halign:'center'},4:{cellWidth:52,halign:'center'},5:{cellWidth:52,halign:'center'},6:{cellWidth:56,halign:'center',fontStyle:'bold'},7:{cellWidth:66,halign:'center'},8:{cellWidth:'auto'}}}));
+      y=doc.lastAutoTable.finalY+12;var st=plStats(a.rows);room(50);
+      doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor.apply(doc,DARK);
+      doc.text('Estudiantes: '+st.n+'     Aprobados: '+st.ap+'     Aplazados: '+st.rp+'     Sin definitiva: '+st.sin,M,y);y+=12;
+      doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor.apply(doc,GRAY);
+      doc.text('Sin marca: evaluación normal.  (112): nota por Art. 112.  (R): nota por recuperación de fin de lapso.  *: definitiva provisional (faltan notas o el plan no suma 100 %).',M,y);
     });
-  });
+  }
   var pages=doc.internal.getNumberOfPages();
   for(var p=1;p<=pages;p++){
     doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor.apply(doc,GRAY);
-    doc.text((S.perfil.institucion||'Zazarabicoa')+' · Planilla de discusión de notas finales · '+grp,M,H-22);
-    doc.text('Página '+p+' de '+pages,W-M,H-22,{align:'right'});
+    doc.text((S.perfil.institucion||'Zazarabicoa')+' · Planilla de discusión de notas finales de lapso · '+grp,M,H-16);
+    doc.text('Página '+p+' de '+pages,W-M,H-16,{align:'right'});
   }
   saveFile(plFile(data,'pdf'),doc.output('arraybuffer'));
 }
-function planillaXlsx(data,incResumen){
+function planillaXlsx(data,opt){
   if(!window.XLSX){expMsg('No se pudo cargar la librería de Excel. Revisa tu conexión e inténtalo otra vez.','bad');return}
-  var wb=XLSX.utils.book_new(),names={},grp=secLabel(data.anio,data.seccion);
-  function add(aoa,name,w){
-    var base=name.replace(/[\[\]:*?\/\\]/g,'-').slice(0,28)||'Hoja',n=base,i=2;while(names[n])n=base.slice(0,26)+' '+i++;
-    names[n]=1;var ws=XLSX.utils.aoa_to_sheet(aoa);if(w)ws['!cols']=w.map(function(x){return {wch:x}});XLSX.utils.book_append_sheet(wb,ws,n);
+  var wb=XLSX.utils.book_new(),names={},grp=secLabel(data.anio,data.seccion),dups=plDups(data);
+  function add(aoa,name,w,merges){
+    var base=name.replace(/[\[\]:*?\/\\]/g,'-').slice(0,28)||'Hoja',nm=base,i=2;while(names[nm])nm=base.slice(0,26)+' '+i++;
+    names[nm]=1;var ws=XLSX.utils.aoa_to_sheet(aoa);if(w)ws['!cols']=w.map(function(x){return {wch:x}});if(merges)ws['!merges']=merges;XLSX.utils.book_append_sheet(wb,ws,nm);
   }
   var tl={n:'Normal','112':'Art. 112',rec:'Recuperación de fin de lapso'};
-  if(incResumen){
+  if(opt.sec){
+    var h1=['N°','Cédula','Apellidos y nombres'],h2=['','',''],merges=[],cols=[4.5,14,42];
+    data.asigs.forEach(function(a,k){
+      h1.push(String(a.name).toUpperCase()+(dups[a.name]>1&&a.docente?' ('+a.docente+')':''),'','','');h2.push('I LAPSO','II LAPSO','III LAPSO','FINAL');
+      merges.push({s:{r:4,c:3+4*k},e:{r:4,c:6+4*k}});cols.push(10,10,10,10);
+    });
     var look=data.asigs.map(function(a){var m={};a.rows.forEach(function(r){m[r.sk]=r});return m});
-    var aoa=[['Planilla de discusión de notas finales · Resumen'],['Año y sección',grp],['Año escolar',S.perfil.anioEscolar],[],['N°','Cédula','Apellidos y nombres'].concat(data.asigs.map(function(a){return a.name}),['Asignaturas aplazadas'])];
-    data.list.forEach(function(s,i){var rp=0,r=[i+1,s.ced,s.nombre];look.forEach(function(m){var x=m[s.key],d=x?x.def:null;r.push(d==null?'':d);if(d!=null&&d<10)rp++});r.push(rp);aoa.push(r)});
-    add(aoa,'Resumen',[5,14,34].concat(data.asigs.map(function(){return 14}),[12]));
+    var aoa=[['Planilla de discusión de notas finales de lapso'],['Año y sección',grp],['Año escolar',S.perfil.anioEscolar],[],h1,h2];
+    data.list.forEach(function(s,i){var r=[i+1,s.ced,s.nombre];look.forEach(function(m){var x=m[s.key];for(var l=0;l<3;l++){var v=x?x.l[l]:null;r.push(v==null?'':v)}r.push('')});aoa.push(r)});
+    add(aoa,'Resumen',cols,merges);
   }
-  data.asigs.forEach(function(a){
+  if(opt.asig)data.asigs.forEach(function(a){
     var aoa=[['Planilla de discusión de notas finales'],['Año y sección',grp],['Asignatura',a.name],['Docente',a.docente],['Año escolar',S.perfil.anioEscolar],[],['N°','Cédula','Apellidos y nombres','Lapso 1','Tipo L1','Lapso 2','Tipo L2','Lapso 3','Tipo L3','Definitiva','Situación']];
     a.rows.forEach(function(r,i){aoa.push([i+1,r.ced,r.nombre,r.l[0]==null?'':r.l[0],tl[r.tipo[0]],r.l[1]==null?'':r.l[1],tl[r.tipo[1]],r.l[2]==null?'':r.l[2],tl[r.tipo[2]],r.def==null?'':r.def,plSit(r)])});
     add(aoa,a.s||a.name,[5,14,34,9,18,9,18,9,18,11,12]);
   });
   saveFile(plFile(data,'xlsx'),XLSX.write(wb,{type:'array',bookType:'xlsx'}));
 }
+function plOptHTML(attr,o){
+  function box(k,t,sm){var v=attr==='data-plres'?k:k;return '<label class="opt"><input type="checkbox" '+attr+'="'+k+'"'+(o[k]?' checked':'')+'><span>'+t+'<small>'+sm+'</small></span></label>'}
+  return '<div class="grid" style="margin-top:12px">'+box('sec','Planilla de la sección','Una sola hoja con todas las asignaturas: I, II y III lapso. La columna FINAL queda en blanco para el docente guía')+box('asig','Una hoja por asignatura','Detalle con definitiva anual y marcas de tipo de nota')+'</div>';
+}
 function plSummaryTable(data){
-  return '<div class="tbl-wrap"><table><thead><tr><th>Asignatura</th><th>Docente</th><th class="num">Estudiantes</th><th class="num">Aprobados</th><th class="num">Aplazados</th><th class="num">Sin definitiva</th></tr></thead><tbody>'+
-    data.asigs.map(function(a){var s=plStats(a.rows);return '<tr><td>'+esc(a.name)+'</td><td>'+esc(a.docente)+'</td><td class="num">'+s.n+'</td><td class="num">'+s.ap+'</td><td class="num">'+(s.rp?'<span class="bad">'+s.rp+'</span>':0)+'</td><td class="num">'+s.sin+'</td></tr>'}).join('')+'</tbody></table></div>';
+  function cnt(a,j){return a.rows.filter(function(r){return r.l[j]!=null}).length}
+  return '<div class="tbl-wrap"><table><thead><tr><th>Asignatura</th><th>Docente</th><th class="num">Estudiantes</th><th class="num">Notas lapso 1</th><th class="num">Notas lapso 2</th><th class="num">Notas lapso 3</th></tr></thead><tbody>'+
+    data.asigs.map(function(a){return '<tr><td>'+esc(a.name)+'</td><td>'+esc(a.docente)+'</td><td class="num">'+a.rows.length+'</td><td class="num">'+cnt(a,0)+'</td><td class="num">'+cnt(a,1)+'</td><td class="num">'+cnt(a,2)+'</td></tr>'}).join('')+'</tbody></table></div>';
 }
 /* vista del docente (pestaña Formatos > Planilla de discusión) */
 function planillaDocView(){
@@ -1498,7 +1538,7 @@ function planillaDocView(){
   if(!ui.fmSec||!S.secs[ui.fmSec])ui.fmSec=secs[0];
   var sec=S.secs[ui.fmSec],asigs=selAsigs().filter(function(a){return hasNotes(sec,a.id)});
   if(!ui.fmAsig||!asigs.some(function(a){return a.id===ui.fmAsig}))ui.fmAsig=asigs[0]&&asigs[0].id;
-  var out='<section class="card"><h2>Planilla de discusión de notas finales</h2><p class="lead">Las notas de los 3 lapsos pasan solas a la planilla desde la pestaña Notas. Aquí marcas, por lapso, si la nota es de evaluación normal, del Art. 112 o de recuperación de fin de lapso. En el PDF, la nota se imprime con esa marca.</p>'+
+  var out='<section class="card"><h2>Planilla de discusión de notas finales</h2><p class="lead">Las notas de fin de lapso pasan solas a la planilla desde la pestaña Notas; la nota final (promedio) la escribe a mano el docente guía. Aquí marcas, por lapso, si la nota es de evaluación normal, del Art. 112 o de recuperación de fin de lapso. En el PDF, la nota se imprime con esa marca.</p>'+
     '<div class="row"><label class="f" style="min-width:14rem"><span>Sección</span><select data-fmsec="1">'+fmSecOpts()+'</select></label>'+
     '<label class="f" style="min-width:14rem"><span>Asignatura</span><select data-fmasig="1"'+(asigs.length?'':' disabled')+'>'+(asigs.length?asigs.map(function(a){return '<option value="'+a.id+'"'+(a.id===ui.fmAsig?' selected':'')+'>'+esc(a.n)+'</option>'}).join(''):'<option>Sin notas cargadas</option>')+'</select></label></div></section>';
   if(!asigs.length)return out+empty('Esta sección no tiene notas','Carga notas en la pestaña Notas y aquí aparecerán.',[['data-go="notas"','Ir a Notas']]);
@@ -1514,23 +1554,23 @@ function planillaDocView(){
   out+='<section class="card"><h2>'+esc(a.n)+' · '+secLabel(sec.anio,esc(sec.seccion))+'</h2><div class="tbl-wrap"><table><thead><tr><th>Estudiante</th>'+LAPSOS.map(function(l){return '<th>Lapso '+l+'</th><th>Tipo de nota</th>'}).join('')+'<th style="text-align:center">Definitiva</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
   var data=planillaBuild([{docente:fullName(),st:S}],secKey(sec));
   out+='<section class="card"><h2>Resumen de la sección</h2>'+plSummaryTable(data)+
-    '<label class="opt" style="margin-top:12px"><input type="checkbox" data-plres="1"'+(ui.plResumen!==false?' checked':'')+'><span>Incluir hoja de resumen general<small>Una tabla con la definitiva de cada estudiante en tus asignaturas</small></span></label>'+
+    plOptHTML('data-plres',plOpts(ui.plOpt))+
     '<div class="row" style="margin-top:12px"><button class="btn" data-act="fmplpdf">Descargar planilla (PDF)</button><button class="btn ghost" data-act="fmplxlsx">Descargar planilla (Excel)</button></div><p class="note" id="expMsg" style="margin-top:12px" role="status"></p>'+
-    '<p class="note">Se imprime una página por asignatura, con todas tus asignaturas de esta sección. El administrador puede reunir en una sola planilla las notas de todos los docentes de la sección.</p></section>';
+    '<p class="note">La planilla sale con tus asignaturas de esta sección. El administrador puede reunir en una sola planilla las notas de todos los docentes.</p></section>';
   return out;
 }
 /* vista del administrador (pestaña Administración) */
 function admPlanillaHTML(){
   var rows=(ui.adm.rows||[]).filter(function(r){return r.st});if(!rows.length)return '';
   var sources=rows.map(function(r){return {docente:r.nombre||r.usuario,st:r.st}}),secs=planSections(sources);
-  var out='<section class="card"><h2>Planillas de discusión de notas finales</h2><p class="lead">Reúne automáticamente las notas de todos los docentes en una planilla por sección, con una página por asignatura. No tienes que copiar nada: se toma de lo que cada docente tiene cargado.</p>';
+  var out='<section class="card"><h2>Planillas de discusión de notas finales</h2><p class="lead">Reúne automáticamente las notas de fin de lapso de todos los docentes en la planilla de la sección (todas las asignaturas en una sola hoja). No tienes que copiar nada: se toma de lo que cada docente tiene cargado.</p>';
   if(!secs.length)return out+'<p class="note">Todavía no hay secciones con estudiantes.</p></section>';
   if(!ui.adm.plKey||!secs.some(function(s){return s.key===ui.adm.plKey}))ui.adm.plKey=secs[0].key;
   var data=planillaBuild(sources,ui.adm.plKey);
   out+='<div class="row"><label class="f" style="min-width:16rem"><span>Sección</span><select data-admpl="key">'+secs.map(function(s){return '<option value="'+esc(s.key)+'"'+(s.key===ui.adm.plKey?' selected':'')+'>'+secLabel(s.anio,esc(s.seccion))+'</option>'}).join('')+'</select></label></div>'+
     '<div style="margin-top:12px">'+(data.asigs.length?plSummaryTable(data):'<p class="note">Ningún docente ha cargado notas en esta sección todavía.</p>')+'</div>'+
     '<p class="note" style="margin-top:8px">'+data.list.length+' estudiantes en total. Si un docente no ha cargado notas de su asignatura, esa asignatura no aparece en la planilla.</p>'+
-    '<label class="opt" style="margin-top:12px"><input type="checkbox" data-admpl="res"'+(ui.adm.plRes!==false?' checked':'')+'><span>Incluir hoja de resumen general<small>Definitiva de cada estudiante en todas las asignaturas de la sección</small></span></label>'+
+    plOptHTML('data-admpl',plOpts(ui.adm.plOpt))+
     '<div class="row" style="margin-top:12px"><button class="btn" data-act="admplpdf"'+(data.asigs.length?'':' disabled')+'>Descargar planilla (PDF)</button><button class="btn ghost" data-act="admplxlsx"'+(data.asigs.length?'':' disabled')+'>Descargar planilla (Excel)</button></div><p class="note" id="expMsg" style="margin-top:12px" role="status"></p></section>';
   return out;
 }
@@ -1538,13 +1578,15 @@ function admPlanilla(kind){
   var rows=(ui.adm.rows||[]).filter(function(r){return r.st}),sources=rows.map(function(r){return {docente:r.nombre||r.usuario,st:r.st}});
   var data=planillaBuild(sources,ui.adm.plKey);
   if(!data.asigs.length){toast('No hay notas cargadas en esa sección.');return}
-  if(kind==='pdf')planillaPdf(data,ui.adm.plRes!==false);else planillaXlsx(data,ui.adm.plRes!==false);
+  var o=plOpts(ui.adm.plOpt);if(!o.sec&&!o.asig){toast('Marca al menos una opción para descargar.');return}
+  if(kind==='pdf')planillaPdf(data,o);else planillaXlsx(data,o);
 }
 function docPlanilla(kind){
   var sec=S.secs[ui.fmSec];if(!sec)return;
   var data=planillaBuild([{docente:fullName(),st:S}],secKey(sec));
   if(!data.asigs.length){toast('No hay notas cargadas en esta sección.');return}
-  if(kind==='pdf')planillaPdf(data,ui.plResumen!==false);else planillaXlsx(data,ui.plResumen!==false);
+  var o=plOpts(ui.plOpt);if(!o.sec&&!o.asig){toast('Marca al menos una opción para descargar.');return}
+  if(kind==='pdf')planillaPdf(data,o);else planillaXlsx(data,o);
 }
 
 /* ---------- import a whole section from Excel ---------- */
